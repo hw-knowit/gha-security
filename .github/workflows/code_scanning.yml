@@ -1,0 +1,39 @@
+name: 'Entur/Code Scanning/Code Scanning'
+
+on:
+    workflow_call:
+        
+jobs:
+    get-repository-languages:
+        runs-on: ubuntu-latest
+        outputs: 
+            repository_languages: ${{ env.GHA_REPOSITORY_LANGUAGES }} 
+        steps:
+            - id: get-repository-languages
+              run: |
+                  #TODO: maybe at some point it will be possible to ask `gh codeql` for a list of supported languages
+                  languages="$(gh api /repos/${{ github.repository }}/languages | \
+                    jq 'keys 
+                        | .[] as $langs
+                        | {
+                            "C":"C",
+                            "C++":"C++",
+                            "C#":"C#",
+                            "Go":"Go",
+                            "Java":"Java",
+                            "JavaScript":"JavaScript",
+                            "TypeScript":"JavaScript",
+                            "Kotlin":"Kotlin",
+                            "Python":"Python",
+                            "Ruby":"Ruby",
+                            "Swift":"Swift"
+                          } as $supported 
+                        | $langs         # operate on all the languages
+                        | $supported[.]  # and lookup their values, null if not found
+                        | select(.)      # select removes null values
+                    ' | \
+                    jq --slurp --compact-output 'unique')" # make a oneliner, and remove duplicates
+            
+                  echo 'GHA_REPOSITORY_LANGUAGES='$languages >> $GITHUB_ENV
+              env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
