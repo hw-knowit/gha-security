@@ -1,0 +1,47 @@
+name: 'Entur/Security/Docker Image Scan'
+
+on:
+    workflow_call:
+        inputs:
+            image_artifact:
+                description: 'The name of the image artifact to scan'
+                type: string
+                required: true
+
+jobs:
+    image-scan:
+        runs-on: ubuntu-latest
+        permissions:
+            issues: write # required for creating issues, and/or adding issue somments
+            pull-requests: write # required for creating comments on pull requests
+            security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
+            actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
+        steps:
+        - name: "Download the image artifact"
+          uses: actions/download-artifact@v4
+          with:
+            name: ${{ github.event.inputs.image_artifact }}
+        - name: "Anchore Grype Scan"
+          uses: anchore/scan-action@v3
+          id: anchore-scan
+          with: 
+            image: ${{ github.event.inputs.image_artifact }}.tar
+            fail-build: true
+            severity-cutoff: critical
+        - name: "Upload vulnerability report"
+          if: ${{ !cancelled() }}
+          uses: github/codeql-action/upload-sarif@v3
+          with: 
+            sarif_file: ${{ steps.anchore-scan.outputs.sarif }}
+            category: 'anchore-grype-scan'
+        - name: "Create comment on pull request if critical vulnerabilities found"
+          if: always() && (steps.anchore-scan.outputs.outcome == 'failure')
+          run: |
+            PR_NUMBER=${{ github.event.pull_request.number }}
+            REPOSITORY=${{ github.repository }}
+            gh api /repos/$REPOSITORY/issues/$PR_NUMBER/comments \
+                --field "body=
+                :warning: :warning: :warning: :warning: :warning:
+                Anchore Grype scan found critical vulnerabilities in the image artifact. Please address these vulnerabilities.
+                The scan results can be found [here](https://github.com/$REPOSITORY/security/code-scanning?query=is%3Aopen+pr%3A$PR_NUMBER)
+                :warning: :warning: :warning: :warning: :warning:" 
