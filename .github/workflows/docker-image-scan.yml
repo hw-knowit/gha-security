@@ -40,6 +40,7 @@ jobs:
             PR_NUMBER=${{ github.event.pull_request.number }}
             REPOSITORY=${{ github.repository }}
             gh api /repos/$REPOSITORY/issues/$PR_NUMBER/comments \
+                -H "Accept: application/vnd.github+json"
                 --field "body=:warning: :warning: :warning: :warning: :warning:
                 Anchore Grype scan found critical vulnerabilities in the image artifact. Please address these vulnerabilities.
                 The scan results can be found [here](https://github.com/$REPOSITORY/security/code-scanning?query=is%3Aopen+pr%3A$PR_NUMBER)
