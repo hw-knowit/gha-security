@@ -28,6 +28,7 @@ jobs:
             image: ${{ inputs.image_artifact }}.tar
             fail-build: true
             severity-cutoff: critical
+            by-cve: true
         - name: "Upload vulnerability report"
           if: ${{ !cancelled() }}
           uses: github/codeql-action/upload-sarif@v3
