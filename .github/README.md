@@ -8,7 +8,6 @@
 GitHub Actions for working with security tools.
 
 - [Code Scanning](../README-code_scanning.md)
+- [Docker image scan](../README-docker-image-scan.md)
 
-
-## Golden Path
 

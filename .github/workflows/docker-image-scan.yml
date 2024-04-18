@@ -25,21 +25,22 @@ jobs:
           with:
             name: ${{ inputs.image_artifact }}
         - name: "Anchore Grype Scan"
-          uses: anchore/scan-action@v3
           id: anchore-scan
+          uses: anchore/scan-action@v3
           with: 
             image: ${{ inputs.image_artifact }}.tar
             fail-build: true
             severity-cutoff: critical
             by-cve: true
         - name: "Upload vulnerability report"
+          id: upload-vulnerability-report
           if: ${{ !cancelled() }}
           uses: github/codeql-action/upload-sarif@v3
           with: 
             sarif_file: ${{ steps.anchore-scan.outputs.sarif }}
             category: 'anchore-grype-scan'
         - name: "Create comment on pull request if critical vulnerabilities found"
-          if: always() && (steps.anchore-scan.outcome == 'failure')
+          if: always() && (steps.anchore-scan.outcome == 'failure') && (steps.upload-vulnerability-report == 'success')
           run: |
             PR_NUMBER=${{ github.event.pull_request.number }}
             REPOSITORY=${{ github.repository }}
