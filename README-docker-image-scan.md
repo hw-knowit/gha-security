@@ -62,6 +62,7 @@ jobs:
         image_artifact: ${{ needs.docker-build.outputs.image_artifact }}
 
   docker-push:
+    needs: docker-image-scan
     uses: entur/gha-docker/.github/workflows/push.yml@main
     secrets: inherit
 ```
