@@ -51,6 +51,10 @@ jobs:
             fail-fast: false
             matrix:
                 language: ${{fromJson(needs.get-repository-languages.outputs.repository_languages)}}
+                include:
+                # Analyzes Java code directly from the codebase without a build
+                    - language: java-kotlin
+                      build-mode: none 
         steps:
             - name: "Checkout repository"
               uses: actions/checkout@v4
