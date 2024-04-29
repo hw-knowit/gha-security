@@ -16,17 +16,17 @@ jobs:
                     jq 'keys 
                         | .[] as $langs
                         | {
-                            "C":"C",
-                            "C++":"C++",
-                            "C#":"C#",
-                            "Go":"Go",
-                            "Java":"Java",
-                            "JavaScript":"JavaScript",
-                            "TypeScript":"JavaScript",
-                            "Kotlin":"Kotlin",
-                            "Python":"Python",
-                            "Ruby":"Ruby",
-                            "Swift":"Swift"
+                            "C":"c-cpp",
+                            "C++":"c-cpp",
+                            "C#":"csharp",
+                            "Go":"go",
+                            "Java":"java-kotlin",
+                            "JavaScript":"javascript-typescript",
+                            "TypeScript":"javascript-typescript",
+                            "Kotlin":"java-kotlin",
+                            "Python":"python",
+                            "Ruby":"ruby",
+                            "Swift":"swift"
                           } as $supported 
                         | $langs         # operate on all the languages
                         | $supported[.]  # and lookup their values, null if not found
