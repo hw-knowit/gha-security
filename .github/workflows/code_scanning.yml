@@ -69,3 +69,5 @@ jobs:
               uses: github/codeql-action/analyze@v3
               with:
                 category: "/language:${{ matrix.language }}"
+            - name: "Print SARIF file"
+              run: cat $GITHUB_WORKSPACE/codeql/sarif/*.sarif
