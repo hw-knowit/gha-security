@@ -16,17 +16,17 @@ jobs:
                     jq 'keys 
                         | .[] as $langs
                         | {
-                            "C":"C",
-                            "C++":"C++",
-                            "C#":"C#",
-                            "Go":"Go",
-                            "Java":"Java",
-                            "JavaScript":"JavaScript",
-                            "TypeScript":"JavaScript",
-                            "Kotlin":"Kotlin",
-                            "Python":"Python",
-                            "Ruby":"Ruby",
-                            "Swift":"Swift"
+                            "C":"c-cpp",
+                            "C++":"c-cpp",
+                            "C#":"csharp",
+                            "Go":"go",
+                            "Java":"java-kotlin",
+                            "JavaScript":"javascript-typescript",
+                            "TypeScript":"javascript-typescript",
+                            "Kotlin":"java-kotlin",
+                            "Python":"python",
+                            "Ruby":"ruby",
+                            "Swift":"swift"
                           } as $supported 
                         | $langs         # operate on all the languages
                         | $supported[.]  # and lookup their values, null if not found
@@ -50,14 +50,21 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                language: ${{fromJson(needs.get-repository-languages.outputs.repository_languages)}} 
+                language: ${{fromJson(needs.get-repository-languages.outputs.repository_languages)}}
         steps:
             - name: "Checkout repository"
               uses: actions/checkout@v4
+            - name: "Initialize CodeQL for Java"
+              uses: github/codeql-action/init@v3
+              with:
+                languages: ${{ matrix.language }}
+                build-mode: none
+              if: matrix.language == 'java-kotlin'
             - name: "Initialize CodeQL"
               uses: github/codeql-action/init@v3
               with:
                 languages: ${{ matrix.language }}
+              if: matrix.language != 'java-kotlin'
             - name: "Perform CodeQL Analysis"
               uses: github/codeql-action/analyze@v3
               with:
