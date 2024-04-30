@@ -70,4 +70,4 @@ jobs:
               with:
                 category: "/language:${{ matrix.language }}"
             - name: "Print SARIF file"
-              run: cat $GITHUB_WORKSPACE/results/javascript.sarif
+              run: cat /home/runner/work/ghas-juice-shop/results/javascript.sarif
