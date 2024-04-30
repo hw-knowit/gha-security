@@ -66,8 +66,9 @@ jobs:
                 languages: ${{ matrix.language }}
               if: matrix.language != 'java-kotlin'
             - name: "Perform CodeQL Analysis"
+              id: codeql-analysis
               uses: github/codeql-action/analyze@v3
               with:
                 category: "/language:${{ matrix.language }}"
             - name: "Print SARIF file"
-              run: cat /home/runner/work/ghas-juice-shop/results/javascript.sarif
+              run: cat ${{ steps.codeql-analysis.outputs.sarif_output }}
