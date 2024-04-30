@@ -71,4 +71,4 @@ jobs:
               with:
                 category: "/language:${{ matrix.language }}"
             - name: "Print SARIF file"
-              run: cat ${{ steps.codeql-analysis.outputs.sarif-output }}/${{ steps.codeql-analysis.outputs.sarif-id }}
+              run: cat ${{ steps.codeql-analysis.outputs.sarif-output }}/${{ matrix.language }}.sarif
