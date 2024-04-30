@@ -70,4 +70,4 @@ jobs:
               with:
                 category: "/language:${{ matrix.language }}"
             - name: "Print SARIF file"
-              run: cat $GITHUB_WORKSPACE/codeql/sarif/*.sarif
+              run: cat $GITHUB_WORKSPACE/codeql/sarif/javascript.sarif
