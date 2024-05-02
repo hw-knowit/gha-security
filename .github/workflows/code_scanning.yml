@@ -72,6 +72,13 @@ jobs:
                 category: "/language:${{ matrix.language }}"
             - name: "Print SARIF file"
               run: | 
-                db-locations=${{ steps.codeql-analysis.outputs.db-locations }}
-                first_key=$(echo $db-locations | jq -r 'keys[0]')  
+                db_locations=${{ steps.codeql-analysis.outputs.db-locations }}
+                echo "db_locations: $db_locations"
+
+                first_key=$(echo $db_locations | jq -r 'keys[0]')
+                echo "first_key: $first_key"
+
+                echo "Files in /home/runner/work/ghas-juice-shop/results/:"
+                ls /home/runner/work/ghas-juice-shop/results/
+
                 cat ${{ steps.codeql-analysis.outputs.sarif-output }}/$first_key.sarif
