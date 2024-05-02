@@ -70,14 +70,10 @@ jobs:
               uses: github/codeql-action/analyze@v3
               with:
                 category: "/language:${{ matrix.language }}"
-            - name: "Print SARIF file"
-              run: |     
-                first_key="$(echo ${{ steps.codeql-analysis.outputs.db-locations }} | jq -r 'keys[0]')"
-
-                echo "GHA_SECURITY_CODE-SCANNING_LANGUAGE=$(echo ${{ steps.codeql-analysis.outputs.db-locations }} | jq -r 'keys[0]')" >> $GITHUB_ENV
-                echo "${{ env.GHA_SECURITY_CODE-SCANNING_LANGUAGE }}"
-
-                echo "Files in /home/runner/work/ghas-juice-shop/results/:"
-                ls /home/runner/work/ghas-juice-shop/results/
-
-                cat ${{ steps.codeql-analysis.outputs.sarif-output }}/${{ env.GHA_SECURITY_CODE-SCANNING_LANGUAGE }}.sarif
+            - name: "Print first key and its value"
+              run: |
+                db_locations='${{ steps.codeql-analysis.outputs.db-locations }}'
+                first_key=$(echo "$db_locations" | jq -r 'keys[0]')
+                first_value=$(echo "$db_locations" | jq -r '.[keys[0]]')
+                echo "First key: $first_key"
+                echo "Value of first key: $first_value"
