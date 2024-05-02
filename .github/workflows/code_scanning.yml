@@ -72,9 +72,9 @@ jobs:
                 category: "/language:${{ matrix.language }}"
             - name: "Print SARIF file"
               run: |     
-                first_key=$(echo ${{ steps.codeql-analysis.outputs.db-locations }} | jq -r 'keys[0]')
+                first_key="$(echo ${{ steps.codeql-analysis.outputs.db-locations }} | jq -r 'keys[0]')"
 
-                echo "GHA_SECURITY_CODE-SCANNING_LANGUAGE=$first_key" >> $GITHUB_ENV
+                echo "GHA_SECURITY_CODE-SCANNING_LANGUAGE=$(echo ${{ steps.codeql-analysis.outputs.db-locations }} | jq -r 'keys[0]')" >> $GITHUB_ENV
                 echo "${{ env.GHA_SECURITY_CODE-SCANNING_LANGUAGE }}"
 
                 echo "Files in /home/runner/work/ghas-juice-shop/results/:"
