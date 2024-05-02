@@ -75,6 +75,7 @@ jobs:
                 db_locations='${{ steps.codeql-analysis.outputs.db-locations }}'
                 first_key=$(echo "$db_locations" | jq -r 'keys[0]')
                 echo "First key: $first_key"
+                cat "${{ steps.codeql-analysis.outputs.sarif-output }}/${first_key}.sarif"
                 FILE="${{ steps.codeql-analysis.outputs.sarif-output }}/${first_key}.sarif"
                 if grep -q '"problem.severity" : "critical"' "$FILE"; then
                     echo "CodeQL found critical vulnerabilities"
