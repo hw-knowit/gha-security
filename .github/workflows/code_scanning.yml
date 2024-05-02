@@ -77,3 +77,4 @@ jobs:
                 first_value=$(echo "$db_locations" | jq -r '.[keys[0]]')
                 echo "First key: $first_key"
                 echo "Value of first key: $first_value"
+                cat "${{ steps.codeql-analysis.outputs.sarif-output }}/${first_value}.sarif"
