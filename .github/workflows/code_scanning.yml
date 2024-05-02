@@ -71,4 +71,7 @@ jobs:
               with:
                 category: "/language:${{ matrix.language }}"
             - name: "Print SARIF file"
-              run: cat ${{ steps.codeql-analysis.outputs.sarif-output }}/${{ matrix.language }}.sarif
+              run: | 
+                db-locations=${{ steps.codeql-analysis.outputs.db-locations }}
+                first_key=$(echo $db-locations | jq -r 'keys[0]')  
+                cat ${{ steps.codeql-analysis.outputs.sarif-output }}/$first_key.sarif
