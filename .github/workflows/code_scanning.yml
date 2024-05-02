@@ -76,7 +76,7 @@ jobs:
                 language=$(echo "$db_locations" | jq -r 'keys[0]')
                 FILE="${{ steps.codeql-analysis.outputs.sarif-output }}/${language}.sarif"
                 if grep -Pq '"security-severity" :\s*"9\.\d' "$FILE"; then
-                    echo "CodeQL found critical vulnerabilities"
+                    echo "CodeQL found critical vulnerabilities" >> $GITHUB_STEP_SUMMARY
                     exit 1
                 else
                     echo "CodeQL found no critical vulnerabilities"
