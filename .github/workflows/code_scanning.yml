@@ -78,3 +78,10 @@ jobs:
                 echo "First key: $first_key"
                 echo "Value of first key: $first_value"
                 cat "${{ steps.codeql-analysis.outputs.sarif-output }}/${first_key}.sarif"
+                FILE="${{ steps.codeql-analysis.outputs.sarif-output }}/${first_key}.sarif"
+                if grep -q '"problem.severity" : "error"' "$FILE"; then
+                    echo "CodeQL found errors"
+                    exit 1
+                else
+                    echo "CodeQL found no errors"
+                fi
