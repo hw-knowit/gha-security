@@ -70,16 +70,14 @@ jobs:
               uses: github/codeql-action/analyze@v3
               with:
                 category: "/language:${{ matrix.language }}"
-            - name: "Print first key and its value"
+            - name: "Check for critical vulnerabilities"
               run: |
                 db_locations='${{ steps.codeql-analysis.outputs.db-locations }}'
-                first_key=$(echo "$db_locations" | jq -r 'keys[0]')
-                echo "First key: $first_key"
-                cat "${{ steps.codeql-analysis.outputs.sarif-output }}/${first_key}.sarif"
-                FILE="${{ steps.codeql-analysis.outputs.sarif-output }}/${first_key}.sarif"
+                language=$(echo "$db_locations" | jq -r 'keys[0]')
+                FILE="${{ steps.codeql-analysis.outputs.sarif-output }}/${language}.sarif"
                 if grep -Pq '"security-severity" :\s*"9\.\d' "$FILE"; then
                     echo "CodeQL found critical vulnerabilities"
                     exit 1
                 else
-                    echo "CodeQL found no errors"
+                    echo "CodeQL found no critical vulnerabilities"
                 fi
