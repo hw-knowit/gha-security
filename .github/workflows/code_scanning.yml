@@ -70,6 +70,7 @@ jobs:
               uses: github/codeql-action/analyze@v3
               with:
                 category: "/language:${{ matrix.language }}"
+                upload: 'failure-only'
             - name: "Check for critical vulnerabilities"
               run: |
                 db_locations='${{ steps.codeql-analysis.outputs.db-locations }}'
