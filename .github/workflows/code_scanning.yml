@@ -69,9 +69,9 @@ jobs:
               id: codeql-analysis
               uses: github/codeql-action/analyze@v3
               with:
-                category: "/language:${{ matrix.language }}"
+                upload: 'never'
             - name: "Upload SARIF results"
               uses: github/codeql-action/upload-sarif@v3
               with:
                 sarif_file: ${{ steps.codeql-analysis.outputs.sarif-output }}
-                category: "codeql-analysis"
+                category: "/language:${{ matrix.language }}"
