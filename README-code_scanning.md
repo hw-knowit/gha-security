@@ -20,3 +20,5 @@ jobs:
 ```yaml
 # codeql.yml
 ```
+
+### White-listing vulnerabilities
