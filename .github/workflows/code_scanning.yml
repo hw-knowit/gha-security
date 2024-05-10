@@ -70,3 +70,9 @@ jobs:
               uses: github/codeql-action/analyze@v3
               with:
                 category: "/language:${{ matrix.language }}"
+            - name: "Check for critical vulnerabilities"
+              run: |
+                gh api \
+                -H "Accept: application/vnd.github+json" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                /repos/${{ github.repository }}/code-scanning/alerts
