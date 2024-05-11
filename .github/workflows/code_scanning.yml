@@ -75,7 +75,7 @@ jobs:
                 gh api \
                 -H "Accept: application/vnd.github+json" \
                 -H "X-GitHub-Api-Version: 2022-11-28" \
-                -F "state=open" \
+                -F state=open \
                 /repos/${{ github.repository }}/code-scanning/alerts 
               env:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
