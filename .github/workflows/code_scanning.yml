@@ -77,7 +77,7 @@ jobs:
                 -H "Accept: application/vnd.github+json" \
                 -H "X-GitHub-Api-Version: 2022-11-28" \
                 /repos/${{ github.repository }}/code-scanning/alerts \
-                -F severity="critical" -F state="open" -F ref="${{ github.ref }}")"
+                -F severity="critical" -F state="closed" -F ref="${{ github.ref }}")"
                 if [ "$alerts" == "[]" ]; then
                   echo "No critical vulnerabilities found."
                 else
