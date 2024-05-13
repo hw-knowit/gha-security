@@ -78,10 +78,10 @@ jobs:
                 -H "X-GitHub-Api-Version: 2022-11-28" \
                 /repos/${{ github.repository }}/code-scanning/alerts \
                 -F severity="critical" -F state="open" -F ref="${{ github.ref }}")"
-                if [ -n "$alerts" ]; then
-                  echo "Critical vulnerabilities found!"
-                else
+                if [ "$alerts" == "[]" ]; then
                   echo "No critical vulnerabilities found."
+                else
+                  echo "Critical vulnerabilities found!"
                 fi
               env:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
