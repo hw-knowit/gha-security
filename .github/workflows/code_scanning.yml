@@ -94,10 +94,10 @@ jobs:
               run: |
                 gh api /repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
                   -H "Accept: application/vnd.github.v3+json" \
-                  --field "body=:no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: \
-                  Code scanning detected critical vulnerabilities in the code. In order to merge, please address these issues first. \
-                  The scan results can be found [here](https://github.com/${{ github.repository }}/security/code-scanning?query=is%3Aopen+pr%3A${{ github.event.pull_request.number }}). \
-                  If you believe one or more of the reported vulnerabilities are false positives/cannot be fixed/can be ignored, please see the [Code Scanning documentation](https://github.com/entur/gha-security/blob/code-scanning-ruleset/README-code_scanning.md#white-listing-vulnerabilities) on how to whitelist. \
+                  --field "body=:no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: 
+                  Code scanning detected critical vulnerabilities in the code (${{ matrix.language}}). In order to merge, please address these issues first. 
+                  The scan results can be found [here](https://github.com/${{ github.repository }}/security/code-scanning?query=is%3Aopen+pr%3A${{ github.event.pull_request.number }}). 
+                  If you believe one or more of the reported vulnerabilities are false positives/cannot be fixed/can be ignored, please see the [Code Scanning documentation](https://github.com/entur/gha-security/blob/code-scanning-ruleset/README-code_scanning.md#white-listing-vulnerabilities) on how to whitelist. 
                   :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry:"
               env:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
