@@ -90,7 +90,7 @@ jobs:
               env:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             - name: "Create comment on pull request if critical vulnerabilities found"
-              if: steps.check-for-critical-vulnerabilities.outcome == 'failure'
+              if: ${{ steps.check-for-critical-vulnerabilities.outcome == 'failure' }}
               run: |
                 gh api /repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
                   -H "Accept: application/vnd.github.v3+json" \
