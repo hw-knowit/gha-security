@@ -73,14 +73,14 @@ jobs:
               uses: github/codeql-action/analyze@v3
               with:
                 category: "/language:${{ matrix.language }}"
-            - name: "Check for critical vulnerabilities"
+            - name: "Get vulnerabilities"
               id: check-for-critical-vulnerabilities
               run: |
-                alerts="$(gh api \
-                --method GET \
-                -H "Accept: application/vnd.github+json" \
-                -H "X-GitHub-Api-Version: 2022-11-28" \
-                /repos/${{ github.repository }}/code-scanning/alerts \
-                -F state="open" -F ref="${{ github.ref }}")"
+                gh api \
+                  --method GET \
+                  -H "Accept: application/vnd.github+json" \
+                  -H "X-GitHub-Api-Version: 2022-11-28" \
+                  /repos/${{ github.repository }}/code-scanning/alerts \
+                  -F state="open" -F ref="${{ github.ref }}"
               env:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
