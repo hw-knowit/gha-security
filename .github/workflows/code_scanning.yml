@@ -47,6 +47,9 @@ jobs:
             # only required for workflows in private repositories
             actions: read
             contents: read
+
+            issues: write # required for creating issues, and/or adding issue comments
+            pull-requests: write # required for creating comments on pull requests
         strategy:
             fail-fast: false
             matrix:
@@ -71,6 +74,7 @@ jobs:
               with:
                 category: "/language:${{ matrix.language }}"
             - name: "Check for critical vulnerabilities"
+              id: check-for-critical-vulnerabilities
               run: |
                 alerts="$(gh api \
                 --method GET \
@@ -79,14 +83,20 @@ jobs:
                 /repos/${{ github.repository }}/code-scanning/alerts \
                 -F severity="critical" -F state="open" -F ref="${{ github.ref }}")"
                 if [ "$alerts" == "[]" ]; then
-                  echo "No critical vulnerabilities found."
+                  exit 0
                 else
-                  gh api /repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
-                    -H "Accept: application/vnd.github.v3+json" \
-                    -- field "body=:no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry:
-                    Code scanning detected critical vulnerabilities in the code. In order to merge, please address these issues first.
-                    The scan results can be found [here](https://github.com/${{ github.repository }}/security/code-scanning?query=is%3Aopen+pr%3A${{ github.event.pull_request.number }}).
-                    If you believe one or more of the reported vulnerabilities are false positives/cannot be fixed/can be ignored, please see the [Code Scanning documentation](https://github.com/entur/gha-security/blob/code-scanning-ruleset/README-code_scanning.md#white-listing-vulnerabilities) on how to whitelist."
+                  exit 1
                 fi
+              env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - name: "Create comment on pull request if critical vulnerabilities found"
+              if: steps.check-for-critical-vulnerabilities.outcome == 'failure'
+              run: |
+                gh api /repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
+                  -H "Accept: application/vnd.github.v3+json" \
+                  -- field "body=:no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry:
+                  Code scanning detected critical vulnerabilities in the code. In order to merge, please address these issues first.
+                  The scan results can be found [here](https://github.com/${{ github.repository }}/security/code-scanning?query=is%3Aopen+pr%3A${{ github.event.pull_request.number }}).
+                  If you believe one or more of the reported vulnerabilities are false positives/cannot be fixed/can be ignored, please see the [Code Scanning documentation](https://github.com/entur/gha-security/blob/code-scanning-ruleset/README-code_scanning.md#white-listing-vulnerabilities) on how to whitelist."
               env:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

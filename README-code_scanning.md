@@ -13,9 +13,12 @@ jobs:
 
 ## Golden Path
 
+- Workflow must be named `codeql.yml`.
 
 ### Example
 
-
+```yaml
+# codeql.yml
+```
 
 ### White-listing vulnerabilities
