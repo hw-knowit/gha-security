@@ -92,7 +92,7 @@ jobs:
                 with open('vulnerabilities.json') as f:
                     vulnerabilities = json.load(f)
 
-                vulnerabilities_with_cwe = [v for v in vulnerabilities if 'external/cwe/cwe-307' in v['rule']['tags']]
+                vulnerabilities_with_cwe = [v for v in vulnerabilities if 'external/cwe/cwe-352' in v['rule']['tags']]
 
                 for vulnerability in vulnerabilities_with_cwe:
                   print(f\"ID: {vulnerability['number']}\")
