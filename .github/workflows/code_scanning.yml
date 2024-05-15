@@ -100,6 +100,9 @@ jobs:
           - name: "Read whitelisting file"
             run: |
               echo "WHITELISTING=$(yq e -j ${{ inputs.whitelist }})" >> $GITHUB_ENV
+          - name: "Print WHITELISTING"
+            run: |
+              echo $WHITELISTING
           - name: "Whitelist vulnerabilities"
             run: |
               python -c "
