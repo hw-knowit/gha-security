@@ -81,7 +81,7 @@ jobs:
                   -H "Accept: application/vnd.github+json" \
                   -H "X-GitHub-Api-Version: 2022-11-28" \
                   /repos/${{ github.repository }}/code-scanning/alerts \
-                  -F state="open" -F ref="${{ github.ref }}" > vulnerabilities.json
+                  -F state="open" -F ref="${{ github.ref }}" -F per_page="100" > vulnerabilities.json
               env:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             - name: "Whitelist vulnerabilities"
