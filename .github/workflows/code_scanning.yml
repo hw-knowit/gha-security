@@ -95,6 +95,6 @@ jobs:
                 vulnerabilities_with_cwe = [v for v in vulnerabilities if 'external/cwe/cwe-307' in v['rule']['tags']]
 
                 for vulnerability in vulnerabilities_with_cwe:
-                  print(f"ID: {vulnerability['number']}")
+                  print(f'ID: {vulnerability['number']}')
                 "
                   
