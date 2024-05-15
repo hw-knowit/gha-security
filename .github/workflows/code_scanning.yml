@@ -81,6 +81,20 @@ jobs:
                   -H "Accept: application/vnd.github+json" \
                   -H "X-GitHub-Api-Version: 2022-11-28" \
                   /repos/${{ github.repository }}/code-scanning/alerts \
-                  -F state="open" -F ref="${{ github.ref }}"
+                  -F state="open" -F ref="${{ github.ref }}" > vulnerabilities.json
               env:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - name: "Whitelist vulnerabilities"
+              run: |
+                python -c "
+                import json                                            
+
+                with open('vulnerabilities.json') as f:
+                    vulnerabilities = json.load(f)
+
+                vulnerabilities_with_cwe = [v for v in vulnerabilities if 'external/cwe/cwe-307' in v['rule']['tags']]
+
+                for vulnerability in vulnerabilities_with_cwe:
+                  print(f"ID: {vulnerability['number']}")
+                "
+                  
