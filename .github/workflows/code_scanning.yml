@@ -2,6 +2,12 @@ name: 'Entur/Security/Code Scanning'
 
 on:
     workflow_call:
+      inputs:
+        whitelist:
+          description: 'Location of whitelisting file'
+          required: false
+          type: string
+          default: '~/.code_scanning_whitelist.yml'
         
 jobs:
     get-repository-languages:
@@ -91,13 +97,21 @@ jobs:
                 -F state="open" -F ref="${{ github.ref }}" -F per_page="100" > vulnerabilities.json
             env:
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          - name: "Read whitelisting file"
+            run: |
+              echo "WHITELISTING=$(yq e -j ${{ inputs.whitelist }})" >> $GITHUB_ENV
           - name: "Whitelist vulnerabilities"
             run: |
               python -c "
-              import json                                            
+              import json
+              import os
+              
+              whitelisting = json.loads(os.getenv('WHITELISTING'))
+              
               with open('vulnerabilities.json') as f:
                   vulnerabilities = json.load(f)
-              vulnerabilities_with_cwe = [v for v in vulnerabilities if 'external/cwe/cwe-352' in v['rule']['tags']]
+                  
+              vulnerabilities_with_cwe = [v for v in vulnerabilities if any(vulnerability['cwe'] in v['rule']['tags'] for vulnerability in whitelisting)]
               for vulnerability in vulnerabilities_with_cwe:
                 print(f\"ID: {vulnerability['number']}\")
               "
