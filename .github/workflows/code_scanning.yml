@@ -16,14 +16,14 @@ jobs:
                     jq 'keys 
                         | .[] as $langs
                         | {
-                            "C":"c-cpp",
-                            "C++":"c-cpp",
+                            "C":"c",
+                            "C++":"cpp",
                             "C#":"csharp",
                             "Go":"go",
-                            "Java":"java-kotlin",
-                            "JavaScript":"javascript-typescript",
-                            "TypeScript":"javascript-typescript",
-                            "Kotlin":"java-kotlin",
+                            "Java":"java",
+                            "JavaScript":"javascript",
+                            "TypeScript":"typescript",
+                            "Kotlin":"kotlin",
                             "Python":"python",
                             "Ruby":"ruby",
                             "Swift":"swift"
@@ -62,12 +62,12 @@ jobs:
               with:
                 languages: ${{ matrix.language }}
                 build-mode: none
-              if: matrix.language == 'java-kotlin'
+              if: matrix.language == 'java'
             - name: "Initialize CodeQL"
               uses: github/codeql-action/init@v3
               with:
                 languages: ${{ matrix.language }}
-              if: matrix.language != 'java-kotlin'
+              if: matrix.language != 'java'
             - name: "Perform CodeQL Analysis"
               id: codeql-analysis
               uses: github/codeql-action/analyze@v3
