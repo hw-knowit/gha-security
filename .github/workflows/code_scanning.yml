@@ -3,11 +3,11 @@ name: 'Entur/Security/Code Scanning'
 on:
     workflow_call:
       inputs:
-        whitelist:
-          description: 'Location of whitelisting file'
+        whitelisting-file:
+          description: 'Path of whitelisting file'
           required: false
           type: string
-          default: '~/.code_scanning_whitelist.yml'
+          default: '.code_scanning_whitelist.yml'
         
 jobs:
 #    get-repository-languages:
@@ -106,7 +106,7 @@ jobs:
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           - name: "Print WHITELISTING"
             run: |
-              cat .code_scanning_whitelist.yml
+              cat ${{ github.event.inputs.whitelisting-file }}
 #          - name: "Whitelist vulnerabilities"
 #            run: |
 #              python -c "
