@@ -89,7 +89,7 @@ jobs:
 
           # required to checkout the repository
           contents: read
-          
+          actions: read
       steps:
           - name: "Checkout repository"
             uses: actions/checkout@v4
@@ -125,4 +125,3 @@ jobs:
               for vulnerability in vulnerabilities_with_cwe:
                 print(f\"ID: {vulnerability['number']}\")
               "
-                
