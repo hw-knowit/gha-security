@@ -85,7 +85,9 @@ jobs:
       needs: codeql-analysis
       permissions:
           security-events: read
-      steps:    
+      steps:
+          - name: "Checkout repository"
+            uses: actions/checkout@v4
           - name: "Get vulnerabilities"
             id: check-for-critical-vulnerabilities
             run: |
