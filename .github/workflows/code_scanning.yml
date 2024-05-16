@@ -104,12 +104,9 @@ jobs:
                 -F state="open" -F ref="${{ github.ref }}" -F per_page="100" > vulnerabilities.json
             env:
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          - name: "Read whitelisting file"
-            run: |
-              echo "WHITELISTING=$(yq e -o=json ${{ inputs.whitelist }})" >> $GITHUB_ENV
           - name: "Print WHITELISTING"
             run: |
-              echo $WHITELISTING
+              cat ${{ github.event.inputs.whitelist }}
           - name: "Whitelist vulnerabilities"
             run: |
               python -c "
