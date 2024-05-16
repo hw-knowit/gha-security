@@ -106,8 +106,8 @@ jobs:
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           - name: "Print WHITELISTING"
             run: |
-              echo ${{ github.event.inputs.whitelisting-file }}
-              cat ${{ github.event.inputs.whitelisting-file }}
+              echo ${{ inputs.whitelisting-file }}
+              cat ${{ inputs.whitelisting-file }}
 #          - name: "Whitelist vulnerabilities"
 #            run: |
 #              python -c "
