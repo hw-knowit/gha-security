@@ -7,7 +7,7 @@ on:
           description: 'Path of whitelisting file'
           required: false
           type: string
-          default: '.code_scanning_whitelist.yml'
+          default: .code_scanning_whitelist.yml
         
 jobs:
 #    get-repository-languages:
