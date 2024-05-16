@@ -119,7 +119,7 @@ jobs:
               print(data)
               
               whitelisting = json.loads(os.getenv('WHITELISTING'))
-              
+              "
 #              with open('vulnerabilities.json') as f:
 #                  vulnerabilities = json.load(f)
 #                  
