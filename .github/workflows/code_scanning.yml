@@ -7,7 +7,7 @@ on:
           description: 'Location of whitelisting file'
           required: false
           type: string
-          default: '~/.code_scanning_whitelist.yml'
+          default: './.code_scanning_whitelist.yml'
         
 jobs:
     get-repository-languages:
@@ -106,7 +106,7 @@ jobs:
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           - name: "Read whitelisting file"
             run: |
-              echo "WHITELISTING=$(yq e -j ${{ inputs.whitelist }})" >> $GITHUB_ENV
+              echo "WHITELISTING=$(yq e -o=json ${{ inputs.whitelist }})" >> $GITHUB_ENV
           - name: "Print WHITELISTING"
             run: |
               echo $WHITELISTING
