@@ -84,7 +84,12 @@ jobs:
       runs-on: ubuntu-latest
       needs: codeql-analysis
       permissions:
+          # required to read code scanning alerts
           security-events: read
+
+          # required to checkout the repository
+          contents: read
+          
       steps:
           - name: "Checkout repository"
             uses: actions/checkout@v4
