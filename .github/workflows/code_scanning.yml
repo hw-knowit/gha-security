@@ -108,14 +108,18 @@ jobs:
             run: |
               echo ${{ inputs.whitelisting-file }}
               cat ${{ inputs.whitelisting-file }}
-#          - name: "Whitelist vulnerabilities"
-#            run: |
-#              python -c "
-#              import json
-#              import os
-#              
-#              whitelisting = json.loads(os.getenv('WHITELISTING'))
-#              
+          - name: "Whitelist vulnerabilities"
+            run: |
+              python -c "
+              import yaml
+
+              with open('${{ inputs.whitelisting-file }}', 'r') as f:
+                  data = yaml.load(f, Loader=yaml.SafeLoader)
+
+              print(data)
+              
+              whitelisting = json.loads(os.getenv('WHITELISTING'))
+              
 #              with open('vulnerabilities.json') as f:
 #                  vulnerabilities = json.load(f)
 #                  
