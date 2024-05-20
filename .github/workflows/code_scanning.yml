@@ -80,7 +80,7 @@ jobs:
 #              with:
 #                category: "/language:${{ matrix.language }}"
 
-    whitelist-code-scanning-alerts:
+    whitelist-code_scanning_alerts:
       runs-on: ubuntu-latest
 #      needs: codeql-analysis
       permissions:
@@ -100,7 +100,7 @@ jobs:
                 -H "Accept: application/vnd.github+json" \
                 -H "X-GitHub-Api-Version: 2022-11-28" \
                 /repos/${{ github.repository }}/code-scanning/alerts \
-                -F state="open" -F ref="${{ github.ref }}" -F per_page="100" > code-scanning-alerts.json
+                -F state="open" -F ref="${{ github.ref }}" -F per_page="100" > code_scanning_alerts.json
             env:
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           - name: "Print WHITELISTING"
@@ -118,11 +118,11 @@ jobs:
 
               print(whitelisting)
               
-              with open('code-scanning-alerts.json') as f:
-                  code-scanning-alerts = json.load(f)
+              with open('code_scanning_alerts.json') as f:
+                  code_scanning_alerts = json.load(f)
               
               for item in whitelisting:
-                for alert in code-scanning-alerts:
+                for alert in code_scanning_alerts:
                   if item['cwe'] in alert['rule']['tags']:
                       print(f\"ID: {alert['number']}, \")
               "
