@@ -126,7 +126,7 @@ jobs:
               for item in whitelisting:
                 for alert in code_scanning_alerts:
                   if item['cwe'] in alert['rule']['tags']:
-                    url = 'https://api.github.com/repos/{}/code-scanning/alerts/{}'.format(${{ github.repository }}, alert['number'])
+                    url = 'https://api.github.com/repos/{}/code-scanning/alerts/{}'.format('${{ github.repository }}', alert['number'])
                     data = {
                       'state': 'dismissed',
                       'dismissed_reason': item['dismissed_reason'],
