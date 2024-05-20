@@ -129,7 +129,7 @@ jobs:
                     url = 'https://api.github.com/repos/{}/code-scanning/alerts/{}'.format(${{ github.repository }}, alert['number'])
                     data = {
                       'state': 'dismissed',
-                      'dismissed_reason': item['dismissed_reason']
+                      'dismissed_reason': item['dismissed_reason'],
                       'dismissed_comment': item['dismissed_comment']
                     }
                     response = requests.patch(url, headers=headers, json=data)
