@@ -114,16 +114,14 @@ jobs:
               import yaml
 
               with open('${{ inputs.whitelisting-file }}', 'r') as f:
-                  data = yaml.load(f, Loader=yaml.SafeLoader)
+                  whitelisting = yaml.load(f, Loader=yaml.SafeLoader)
 
-              print(data)
+              print(whitelisting)
+              
+              with open('vulnerabilities.json') as f:
+                  vulnerabilities = json.load(f)
+                  
+              vulnerabilities_filtered = [v for v in vulnerabilities if any(whitelisting['cwe'] in v['rule']['tags'])]
+              for vulnerability in vulnerabilities_filtered:
+                print(f\"ID: {vulnerability['number']}\")
               "
-#              whitelisting = json.loads(os.getenv('WHITELISTING'))
-#              
-#              with open('vulnerabilities.json') as f:
-#                  vulnerabilities = json.load(f)
-#                  
-#              vulnerabilities_with_cwe = [v for v in vulnerabilities if any(vulnerability['cwe'] in v['rule']['tags'] for vulnerability in whitelisting)]
-#              for vulnerability in vulnerabilities_with_cwe:
-#                print(f\"ID: {vulnerability['number']}\")
-#              "
