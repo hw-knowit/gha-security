@@ -116,14 +116,9 @@ jobs:
               with open('${{ inputs.whitelisting-file }}', 'r') as f:
                   whitelisting = yaml.load(f, Loader=yaml.SafeLoader)
 
-              print(whitelisting)
-              
               with open('code_scanning_alerts.json') as f:
                 code_scanning_alerts = json.load(f)
                 
-              print('---')
-              print(code_scanning_alerts)
-              
               for item in whitelisting:
                 for alert in code_scanning_alerts:
                   if item['cwe'] in alert['rule']['tags']:
