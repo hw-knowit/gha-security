@@ -103,24 +103,34 @@ jobs:
                 -F state="open" -F ref="${{ github.ref }}" -F per_page="100" > code_scanning_alerts.json
             env:
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          - name: "Print WHITELISTING"
-            run: |
-              echo ${{ inputs.whitelisting-file }}
-              cat ${{ inputs.whitelisting-file }}
           - name: "Whitelist code scanning alerts"
             run: |
               python -c "
               import yaml
               import json
+              import requests
+
+              headers = {
+                'Accept': 'application/vnd.github+json',
+                'X-GitHub-Api-Version': '2022-11-28',
+                'Authorization': f'token ${{ secrets.GITHUB_TOKEN }}'
+              }
 
               with open('${{ inputs.whitelisting-file }}', 'r') as f:
                   whitelisting = yaml.load(f, Loader=yaml.SafeLoader)
 
               with open('code_scanning_alerts.json') as f:
                 code_scanning_alerts = json.load(f)
-                
+              
+              
               for item in whitelisting:
                 for alert in code_scanning_alerts:
                   if item['cwe'] in alert['rule']['tags']:
-                      print(f\"ID: {alert['number']}, \")
+                    url = f"https://api.github.com/repos/${{ github.repository }}/code-scanning/alerts/{alert['number']}"
+                    data = {
+                      'state': 'dismissed',
+                      'dismissed_reason': item['dismissed_reason']
+                      'dismissed_comment': item['dismissed_comment']
+                    }
+                    response = requests.patch(url, headers=headers, json=data)
               "
