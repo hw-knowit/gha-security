@@ -117,11 +117,12 @@ jobs:
                   whitelisting = yaml.load(f, Loader=yaml.SafeLoader)
 
               print(whitelisting)
-              print('---')
-              print(code_scanning_alerts)
               
               with open('code_scanning_alerts.json') as f:
-                  code_scanning_alerts = json.load(f)
+                code_scanning_alerts = json.load(f)
+                
+              print('---')
+              print(code_scanning_alerts)
               
               for item in whitelisting:
                 for alert in code_scanning_alerts:
