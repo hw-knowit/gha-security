@@ -112,6 +112,7 @@ jobs:
             run: |
               python -c "
               import yaml
+              import json
 
               with open('${{ inputs.whitelisting-file }}', 'r') as f:
                   whitelisting = yaml.load(f, Loader=yaml.SafeLoader)
