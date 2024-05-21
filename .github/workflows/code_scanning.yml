@@ -85,7 +85,7 @@ jobs:
 #      needs: codeql-analysis
       permissions:
           # required to read code scanning alerts
-          security-events: read
+          security-events: write
 
           # required to checkout the repository
           contents: read
