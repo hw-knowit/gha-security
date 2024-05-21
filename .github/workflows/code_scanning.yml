@@ -133,5 +133,5 @@ jobs:
                       'dismissed_comment': item['dismissed_comment']
                     }
                     response = requests.patch(url, headers=headers, json=data)
-                    print(response)
+                    print(response.json())
               "
