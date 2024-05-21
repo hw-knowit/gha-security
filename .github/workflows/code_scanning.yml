@@ -5,9 +5,7 @@ on:
       inputs:
         whitelisting-file:
           description: 'Whitelisting file'
-          required: false
           type: string
-          default: .code_scanning_whitelist.yml
         
 jobs:
 #    get-repository-languages:
@@ -81,10 +79,11 @@ jobs:
 #                category: "/language:${{ matrix.language }}"
 
     whitelist-code_scanning_alerts:
+      if: ${{ inputs.whitelisting-file != '' }}
       runs-on: ubuntu-latest
 #      needs: codeql-analysis
       permissions:
-          # required to read code scanning alerts
+          # required to read and update code scanning alerts
           security-events: write
 
           # required to checkout the repository
@@ -133,5 +132,4 @@ jobs:
                       'dismissed_comment': item['dismissed_comment']
                     }
                     response = requests.patch(url, headers=headers, json=data)
-                    print(response.json())
               "
