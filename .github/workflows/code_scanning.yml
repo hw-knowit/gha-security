@@ -156,7 +156,7 @@ jobs:
               fi
           env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```     - name: "Create comment on pull request if critical alerts are found"
+        - name: "Create comment on pull request if critical alerts are found"
           run: |
             gh api /repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
               -H "Accept: application/vnd.github.v3+json" \
