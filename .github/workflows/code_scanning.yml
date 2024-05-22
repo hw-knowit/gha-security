@@ -141,7 +141,7 @@ jobs:
           # required to read code scanning alerts
           security-events: read
       steps: 
-        - name: "Check for critical code scanning alerts"
+        - name: "Get critical code scanning alerts"
           run: |
             alerts="$(gh api \
               --method GET \
@@ -150,19 +150,14 @@ jobs:
               /repos/${{ github.repository }}/code-scanning/alerts \
               -F severity='critical' -F state='open' -F ref='${{ github.ref }}' -F per_page='100' )"
               if [ "$alerts" == "[]" ]; then
-                exit 0
+                echo 'GHA_SECURITY_CODE-SCANNING_CREATE_PR_COMMENT='false >> $GITHUB_ENV
               else
-                gh api /repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
-                  -H "Accept: application/vnd.github.v3+json" \
-                  --field "body=:no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry:
-                    Code scanning detected critical vulnerabilities in the code (${{ matrix.language}}). In order to merge, please address these issues first. 
-                    The scan results can be found [here](https://github.com/${{ github.repository }}/security/code-scanning?query=is%3Aopen+pr%3A${{ github.event.pull_request.number }}). 
-                    If you believe one or more of the reported vulnerabilities are false positives/cannot be fixed/can be ignored, please see the [Code Scanning documentation](https://github.com/entur/gha-security/blob/code-scanning-ruleset/README-code_scanning.md#white-listing-vulnerabilities) on how to whitelist. 
-                    :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry:"
+                echo 'GHA_SECURITY_CODE-SCANNING_CREATE_PR_COMMENT='true >> $GITHUB_ENV
               fi
           env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         - name: "Create comment on pull request if critical alerts are found"
+          if: env.GHA_SECURITY_CODE-SCANNING_CREATE_PR_COMMENT == 'true'
           run: |
             gh api /repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
               -H "Accept: application/vnd.github.v3+json" \
