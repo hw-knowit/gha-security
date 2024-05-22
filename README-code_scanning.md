@@ -29,6 +29,18 @@ jobs:
 
 ```yaml
 # codeql.yml
+name: "CodeQL"
+
+on:
+    pull_request:
+        branches:
+            - main
+            - master
+  
+jobs:
+    code-scanning:
+        name: Code Scanning
+        uses: entur/gha-security/.github/workflows/code_scanning.yml@main
 ```
 
 ### White-listing vulnerabilities
