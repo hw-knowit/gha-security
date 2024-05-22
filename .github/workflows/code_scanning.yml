@@ -156,7 +156,7 @@ jobs:
           env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         - name: "Create comment on pull request if critical alerts are found"
-          if: env.GHA_SECURITY_CODE-SCANNING_CREATE_PR_COMMENT == 'true'
+          if: env.GHA_SECURITY_CODE-SCANNING_CREATE_PR_COMMENT == 'true' && github.event_name == 'pull_request'
           run: |
             gh api /repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
               -H "Accept: application/vnd.github.v3+json" \
