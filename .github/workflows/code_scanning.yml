@@ -51,9 +51,6 @@ jobs:
             # CodeQL - only required for workflows in private repositories
             actions: read
             contents: read
-
-            issues: write # required for creating issues, and/or adding issue comments
-            pull-requests: write # required for creating comments on pull requests
         strategy:
             fail-fast: false
             matrix:
@@ -138,8 +135,10 @@ jobs:
       runs-on: ubuntu-latest
       needs: whitelist-code_scanning_alerts
       permissions: 
-          # required to read code scanning alerts
-          security-events: read
+          security-events: read # required to read code scanning alerts
+
+          issues: write # required for creating issues, and/or adding issue comments
+          pull-requests: write # required for creating comments on pull requests
       steps: 
         - name: "Get critical code scanning alerts"
           run: |
