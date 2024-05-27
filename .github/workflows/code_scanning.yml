@@ -6,79 +6,80 @@ on:
         whitelist-file:
           description: 'The path to the file containing the whitelisting rules, starting from the root of the repository'
           type: string
+          default: code_whitelisting.yaml
         
 jobs:
-    get-repository-languages:
-        runs-on: ubuntu-latest
-        outputs: 
-            repository_languages: ${{ env.GHA_SECURITY_CODE-SCANNING_REPOSITORY_LANGUAGES }} 
-        steps:
-            - name: "Get repository languages"
-              id: get-repository-languages
-              run: |
-                  languages="$(gh api /repos/${{ github.repository }}/languages | \
-                    jq 'keys 
-                        | .[] as $langs
-                        | {
-                            "C":"c",
-                            "C++":"cpp",
-                            "C#":"csharp",
-                            "Go":"go",
-                            "Java":"java",
-                            "JavaScript":"javascript-typescript",
-                            "TypeScript":"javascript-typescript",
-                            "Kotlin":"kotlin",
-                            "Python":"python",
-                            "Ruby":"ruby",
-                            "Swift":"swift"
-                          } as $supported 
-                        | $langs         # operate on all the languages
-                        | $supported[.]  # and lookup their values, null if not found
-                        | select(.)      # select removes null values
-                    ' | \
-                    jq --slurp --compact-output 'unique')" # make a oneliner, and remove duplicates
-            
-                  echo 'GHA_SECURITY_CODE-SCANNING_REPOSITORY_LANGUAGES='$languages >> $GITHUB_ENV
-              env:
-                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    codeql-analysis:
-        runs-on: ubuntu-latest
-        needs: get-repository-languages
-        permissions:
-            # CodeQL - required for all workflows
-            security-events: write
-            # CodeQL - only required for workflows in private repositories
-            actions: read
-            contents: read
-        strategy:
-            fail-fast: false
-            matrix:
-                language: ${{fromJson(needs.get-repository-languages.outputs.repository_languages)}}
-        steps:
-            - name: "Checkout repository"
-              uses: actions/checkout@v4
-            - name: "Initialize CodeQL for Java"
-              uses: github/codeql-action/init@v3
-              with:
-                languages: ${{ matrix.language }}
-                build-mode: none
-              if: matrix.language == 'java'
-            - name: "Initialize CodeQL"
-              uses: github/codeql-action/init@v3
-              with:
-                languages: ${{ matrix.language }}
-              if: matrix.language != 'java'
-            - name: "Perform CodeQL Analysis"
-              id: codeql-analysis
-              uses: github/codeql-action/analyze@v3
-              with:
-                category: "/language:${{ matrix.language }}"
-
+#    get-repository-languages:
+#        runs-on: ubuntu-latest
+#        outputs: 
+#            repository_languages: ${{ env.GHA_SECURITY_CODE-SCANNING_REPOSITORY_LANGUAGES }} 
+#        steps:
+#            - name: "Get repository languages"
+#              id: get-repository-languages
+#              run: |
+#                  languages="$(gh api /repos/${{ github.repository }}/languages | \
+#                    jq 'keys 
+#                        | .[] as $langs
+#                        | {
+#                            "C":"c",
+#                            "C++":"cpp",
+#                            "C#":"csharp",
+#                            "Go":"go",
+#                            "Java":"java",
+#                            "JavaScript":"javascript-typescript",
+#                            "TypeScript":"javascript-typescript",
+#                            "Kotlin":"kotlin",
+#                            "Python":"python",
+#                            "Ruby":"ruby",
+#                            "Swift":"swift"
+#                          } as $supported 
+#                        | $langs         # operate on all the languages
+#                        | $supported[.]  # and lookup their values, null if not found
+#                        | select(.)      # select removes null values
+#                    ' | \
+#                    jq --slurp --compact-output 'unique')" # make a oneliner, and remove duplicates
+#            
+#                  echo 'GHA_SECURITY_CODE-SCANNING_REPOSITORY_LANGUAGES='$languages >> $GITHUB_ENV
+#              env:
+#                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#
+#    codeql-analysis:
+#        runs-on: ubuntu-latest
+#        needs: get-repository-languages
+#        permissions:
+#            # CodeQL - required for all workflows
+#            security-events: write
+#            # CodeQL - only required for workflows in private repositories
+#            actions: read
+#            contents: read
+#        strategy:
+#            fail-fast: false
+#            matrix:
+#                language: ${{fromJson(needs.get-repository-languages.outputs.repository_languages)}}
+#        steps:
+#            - name: "Checkout repository"
+#              uses: actions/checkout@v4
+#            - name: "Initialize CodeQL for Java"
+#              uses: github/codeql-action/init@v3
+#              with:
+#                languages: ${{ matrix.language }}
+#                build-mode: none
+#              if: matrix.language == 'java'
+#            - name: "Initialize CodeQL"
+#              uses: github/codeql-action/init@v3
+#              with:
+#                languages: ${{ matrix.language }}
+#              if: matrix.language != 'java'
+#            - name: "Perform CodeQL Analysis"
+#              id: codeql-analysis
+#              uses: github/codeql-action/analyze@v3
+#              with:
+#                category: "/language:${{ matrix.language }}"
+#
     whitelist-code_scanning_alerts:
       if: ${{ inputs.whitelist-file != '' }}
       runs-on: ubuntu-latest
-      needs: codeql-analysis
+#      needs: codeql-analysis
       permissions:
           # required to read and update code scanning alerts
           security-events: write
@@ -89,81 +90,88 @@ jobs:
       steps:
           - name: "Checkout repository"
             uses: actions/checkout@v4
-          - name: "Get code scanning alerts"
-            run: |
-              gh api \
-                --method GET \
-                -H "Accept: application/vnd.github+json" \
-                -H "X-GitHub-Api-Version: 2022-11-28" \
-                /repos/${{ github.repository }}/code-scanning/alerts \
-                -F state="open" -F ref="${{ github.ref }}" -F per_page="100" > code_scanning_alerts.json
-            env:
-              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          - name: "Whitelist code scanning alerts"
-            run: |
-              python -c "
-              import yaml
-              import json
-              import requests
+          - name: "Validate code scanning whitelist file"
+            uses: navikt/yaml-validator@v4
+            with:
+              schema_path: valid_schema.yaml
+              document_path: ${{ inputs.whitelist-file }}
 
-              headers = {
-                'Accept': 'application/vnd.github+json',
-                'X-GitHub-Api-Version': '2022-11-28',
-                'Authorization': 'token {}'.format('${{ secrets.GITHUB_TOKEN }}')
-              }
-
-              with open('${{ inputs.whitelist-file }}', 'r') as f:
-                  whitelisting = yaml.load(f, Loader=yaml.SafeLoader)
-
-              with open('code_scanning_alerts.json') as f:
-                code_scanning_alerts = json.load(f)
               
-              
-              for item in whitelisting:
-                for alert in code_scanning_alerts:
-                  if item['cwe'] in alert['rule']['tags']:
-                    url = 'https://api.github.com/repos/{}/code-scanning/alerts/{}'.format('${{ github.repository }}', alert['number'])
-                    data = {
-                      'state': 'dismissed',
-                      'dismissed_reason': item['dismissed_reason'],
-                      'dismissed_comment': item['dismissed_comment']
-                    }
-                    response = requests.patch(url, headers=headers, json=data)
-              "
-
-    check-for-critical-alerts:
-      runs-on: ubuntu-latest
-      needs: whitelist-code_scanning_alerts
-      permissions: 
-          security-events: read # required to read code scanning alerts
-
-          issues: write # required for creating issues, and/or adding issue comments
-          pull-requests: write # required for creating comments on pull requests
-      steps: 
-        - name: "Get critical code scanning alerts"
-          run: |
-            alerts="$(gh api \
-              --method GET \
-              -H 'Accept: application/vnd.github+json' \
-              -H 'X-GitHub-Api-Version: 2022-11-28' \
-              /repos/${{ github.repository }}/code-scanning/alerts \
-              -F severity='critical' -F state='open' -F ref='${{ github.ref }}' -F per_page='100' )"
-              if [ "$alerts" == "[]" ]; then
-                echo 'GHA_SECURITY_CODE-SCANNING_CREATE_PR_COMMENT='false >> $GITHUB_ENV
-              else
-                echo 'GHA_SECURITY_CODE-SCANNING_CREATE_PR_COMMENT='true >> $GITHUB_ENV
-              fi
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        - name: "Create comment on pull request if critical alerts are found"
-          if: env.GHA_SECURITY_CODE-SCANNING_CREATE_PR_COMMENT == 'true' && github.event_name == 'pull_request'
-          run: |
-            gh api /repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
-              -H "Accept: application/vnd.github.v3+json" \
-              --field "body=:no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: 
-                Code scanning detected critical vulnerabilities in the code. In order to merge, please address these issues first. 
-                The scan results can be found [here](https://github.com/${{ github.repository }}/security/code-scanning?query=is%3Aopen+pr%3A${{ github.event.pull_request.number }}). 
-                If you believe one or more of the reported vulnerabilities are false positives/cannot be fixed/can be ignored, please see the [Code Scanning documentation](https://github.com/entur/gha-security/blob/code-scanning-ruleset/README-code_scanning.md#white-listing-vulnerabilities) on how to whitelist. 
-                :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry:"
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          - name: "Get code scanning alerts"
+#            run: |
+#              gh api \
+#                --method GET \
+#                -H "Accept: application/vnd.github+json" \
+#                -H "X-GitHub-Api-Version: 2022-11-28" \
+#                /repos/${{ github.repository }}/code-scanning/alerts \
+#                -F state="open" -F ref="${{ github.ref }}" -F per_page="100" > code_scanning_alerts.json
+#            env:
+#              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          - name: "Whitelist code scanning alerts"
+#            run: |
+#              python -c "
+#              import yaml
+#              import json
+#              import requests
+#
+#              headers = {
+#                'Accept': 'application/vnd.github+json',
+#                'X-GitHub-Api-Version': '2022-11-28',
+#                'Authorization': 'token {}'.format('${{ secrets.GITHUB_TOKEN }}')
+#              }
+#
+#              with open('${{ inputs.whitelist-file }}', 'r') as f:
+#                  whitelisting = yaml.load(f, Loader=yaml.SafeLoader)
+#
+#              with open('code_scanning_alerts.json') as f:
+#                code_scanning_alerts = json.load(f)
+#              
+#              
+#              for item in whitelisting:
+#                for alert in code_scanning_alerts:
+#                  if item['cwe'] in alert['rule']['tags']:
+#                    url = 'https://api.github.com/repos/{}/code-scanning/alerts/{}'.format('${{ github.repository }}', alert['number'])
+#                    data = {
+#                      'state': 'dismissed',
+#                      'dismissed_reason': item['dismissed_reason'],
+#                      'dismissed_comment': item['dismissed_comment']
+#                    }
+#                    response = requests.patch(url, headers=headers, json=data)
+#              "
+#
+#    check-for-critical-alerts:
+#      runs-on: ubuntu-latest
+#      needs: whitelist-code_scanning_alerts
+#      permissions: 
+#          security-events: read # required to read code scanning alerts
+#
+#          issues: write # required for creating issues, and/or adding issue comments
+#          pull-requests: write # required for creating comments on pull requests
+#      steps: 
+#        - name: "Get critical code scanning alerts"
+#          run: |
+#            alerts="$(gh api \
+#              --method GET \
+#              -H 'Accept: application/vnd.github+json' \
+#              -H 'X-GitHub-Api-Version: 2022-11-28' \
+#              /repos/${{ github.repository }}/code-scanning/alerts \
+#              -F severity='critical' -F state='open' -F ref='${{ github.ref }}' -F per_page='100' )"
+#              if [ "$alerts" == "[]" ]; then
+#                echo 'GHA_SECURITY_CODE-SCANNING_CREATE_PR_COMMENT='false >> $GITHUB_ENV
+#              else
+#                echo 'GHA_SECURITY_CODE-SCANNING_CREATE_PR_COMMENT='true >> $GITHUB_ENV
+#              fi
+#          env:
+#            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#        - name: "Create comment on pull request if critical alerts are found"
+#          if: env.GHA_SECURITY_CODE-SCANNING_CREATE_PR_COMMENT == 'true' && github.event_name == 'pull_request'
+#          run: |
+#            gh api /repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
+#              -H "Accept: application/vnd.github.v3+json" \
+#              --field "body=:no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: 
+#                Code scanning detected critical vulnerabilities in the code. In order to merge, please address these issues first. 
+#                The scan results can be found [here](https://github.com/${{ github.repository }}/security/code-scanning?query=is%3Aopen+pr%3A${{ github.event.pull_request.number }}). 
+#                If you believe one or more of the reported vulnerabilities are false positives/cannot be fixed/can be ignored, please see the [Code Scanning documentation](https://github.com/entur/gha-security/blob/code-scanning-ruleset/README-code_scanning.md#white-listing-vulnerabilities) on how to whitelist. 
+#                :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry:"
+#          env:
+#            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
