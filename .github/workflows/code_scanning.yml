@@ -87,8 +87,8 @@ jobs:
           # required to read and update code scanning alerts
           security-events: write
 
-          # required to checkout the repository
-          contents: read
+          # required to checkout the repository and edit
+          contents: write
           actions: read
       steps:
           - name: "Checkout repository"
@@ -105,11 +105,12 @@ jobs:
               document_path: ${{ inputs.image-whitelisting }}
           - name: "Create grype.yaml"
             run: |
-              touch grype.yaml
-              echo "
-              ignore: 
-                - vulnerability: xxx
-                " > grype.yaml
+              gh api \
+                --method PUT \
+                -H "Accept: application/vnd.github+json" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                /repos/${{ github.repository }}/contents/grype.yaml \
+                -f "message=Create grype.yaml" -f "content=bXkgbmV3IGZpbGUgY29udGVudHM="
               
 #          - name: "Get code scanning alerts"
 #            run: |
