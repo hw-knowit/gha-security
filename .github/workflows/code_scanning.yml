@@ -105,11 +105,11 @@ jobs:
               document_path: ${{ inputs.image-whitelisting }}
           - name: "Create grype.yaml"
             run: |
-              touch .grype.yaml
+              touch grype.yaml
               echo "
               ignore: 
                 - vulnerability: xxx
-                " > .grype.yaml
+                " > grype.yaml
               
 #          - name: "Get code scanning alerts"
 #            run: |
