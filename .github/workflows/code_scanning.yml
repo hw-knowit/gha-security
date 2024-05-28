@@ -96,11 +96,13 @@ jobs:
           - name: "Validate code scanning whitelist file"
             uses: navikt/yaml-validator@v4
             with:
-              schema_path: valid_schema.yaml
-              document_path: ${{ inputs.whitelist-file }}
+              schema_path: valid_code_schema.yaml
+              document_path: ${{ inputs.code-whitelist-file }}
           - name: "validate image whitelist file"
             uses: navikt/yaml-validator@v4
-            with:
+            with: 
+              schema_path: valid_image_schema.yaml
+              document_path: ${{ inputs.image-whitelisting }}
               
               
 #          - name: "Get code scanning alerts"
