@@ -103,7 +103,13 @@ jobs:
             with: 
               schema_path: valid_image_schema.yaml
               document_path: ${{ inputs.image-whitelisting }}
-              
+          - name: "Create grype.yaml"
+            run: |
+              touch .grype.yaml
+              echo "
+              ignore: 
+                - vulnerability: xxx
+                " > .grype.yaml
               
 #          - name: "Get code scanning alerts"
 #            run: |
