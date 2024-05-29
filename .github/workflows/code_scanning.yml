@@ -94,12 +94,12 @@ jobs:
           - name: "Checkout repository"
             uses: actions/checkout@v4
           - name: "Validate code scanning whitelist file"
-            uses: navikt/yaml-validator@v4
+            uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
             with:
               schema_path: valid_code_schema.yaml
               document_path: ${{ inputs.code-whitelist-file }}
           - name: "validate image whitelist file"
-            uses: navikt/yaml-validator@v4
+            uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
             with: 
               schema_path: valid_image_schema.yaml
               document_path: ${{ inputs.image-whitelisting }}
