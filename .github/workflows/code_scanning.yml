@@ -93,7 +93,25 @@ jobs:
       steps:
           - name: "Checkout repository"
             uses: actions/checkout@v4
-          - name: "Validate code scanning whitelist file"
+          - name: "Create file"
+            run: |
+              cat > test.yaml << EOF
+              Code whitelisting:
+                required: true
+                type: list
+                schema:
+                  type: dict
+                  schema:
+                    cwe:
+                      required: true
+                      type: string
+                    comment:
+                      required: true
+                      type: string
+                    reason:
+                      required: true
+                      type: string
+              EOF
             uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
             with:
               schema_path: valid_code_schema.yaml
