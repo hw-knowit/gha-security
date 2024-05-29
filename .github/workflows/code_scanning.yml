@@ -93,9 +93,9 @@ jobs:
       steps:
           - name: "Checkout repository"
             uses: actions/checkout@v4
-          - name: "Create file"
+          - name: "Create code whitelist schema file"
             run: |
-              cat > test.yaml << EOF
+              cat > code_whitelist_schema.yaml << EOF
               Code whitelisting:
                 required: true
                 type: list
@@ -112,10 +112,11 @@ jobs:
                       required: true
                       type: string
               EOF
+              echo 'GHA_SECURITY_CODE_WHITELIST_SCHEMA=code_whitelist_schema.yaml' >> $GITHUB_ENV
           - name: "Validate code scanning whitelist file"
             uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
             with:
-              schema_path: valid_code_schema.yaml
+              schema_path: ${{ env.GHA_SECURITY_CODE_WHITELIST_SCHEMA }}
               document_path: ${{ inputs.code-whitelist-file }}
           - name: "validate image whitelist file"
             uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
