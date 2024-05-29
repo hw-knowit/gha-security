@@ -121,13 +121,23 @@ jobs:
                 -f "message=Create grype.yaml" -f "content=bXkgbmV3IGZpbGUgY29udGVudHM="
             env:
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          - name: "Get grype.yaml"
+          - name: "Update grype.yaml"
             if: env.GHA_SECURITY_CODE-SCANNING_GRYPE_YAML_EXISTS == 'true'
             run: |
-              gh api \
+              grype_file="$(gh api \
                 -H "Accept: application/vnd.github+json" \
                 -H "X-GitHub-Api-Version: 2022-11-28" \
-                /repos/${{ github.repository }}/contents/grype.yaml 
+                /repos/${{ github.repository }}/contents/grype.yaml)"
+
+              grype_file_sha=$(echo "$grype_file" | jq -r '.sha')
+
+              gh api \
+                --method PUT \
+                -H "Accept: application/vnd.github+json" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                /repos/${{ github.repository }}/contents/grype.yaml \
+                -f "message=Update grype.yaml" -f "content=bXkgdXBkYXRlZCBmaWxlIGNvbnRlbnRz" \
+                -f "sha=$grype_file_sha"
             env:
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 #          - name: "Get code scanning alerts"
