@@ -81,7 +81,7 @@ jobs:
 #                category: "/language:${{ matrix.language }}"
 #
     whitelist-code_scanning_alerts:
-      if: ${{ inputs.code-whitelist-file}} != ''
+      if: ${{ inputs.code-whitelist-file != '' }}
       runs-on: ubuntu-latest
 #      needs: codeql-analysis
       permissions:
