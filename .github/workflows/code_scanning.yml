@@ -6,7 +6,7 @@ on:
         code-whitelist-file:
           description: 'The path to the file containing the whitelisting rules for the code base, starting from the root of the repository'
           type: string
-          default: code_whitelisting.yaml
+          default: ''
         image-whitelisting:
           description: 'The path to the file containing the whitelisting rules for the docker images, starting from the root of the repository'
           type: string
@@ -81,6 +81,7 @@ jobs:
 #                category: "/language:${{ matrix.language }}"
 #
     whitelist-code_scanning_alerts:
+      if: ${{ inputs.code-whitelist-file}} != ''
       runs-on: ubuntu-latest
 #      needs: codeql-analysis
       permissions:
