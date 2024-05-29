@@ -106,11 +106,12 @@ jobs:
           - name:  "Check if grype.yaml exists"
             run: |
               if test -f grype.yaml; then
-                echo "grype.yaml exists"
+                echo 'GHA_SECURITY_CODE-SCANNING_GRYPE_YAML_EXISTS=true' >> $GITHUB_ENV
               else
-                echo "grype.yaml does not exist"
+                echo 'GHA_SECURITY_CODE-SCANNING_GRYPE_YAML_EXISTS=false' >> $GITHUB_ENV
               fi
           - name: "Create grype.yaml"
+            if: env.GHA_SECURITY_CODE-SCANNING_GRYPE_YAML_EXISTS == 'false'
             run: |
               gh api \
                 --method PUT \
