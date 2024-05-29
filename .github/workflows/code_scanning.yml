@@ -103,6 +103,13 @@ jobs:
             with: 
               schema_path: valid_image_schema.yaml
               document_path: ${{ inputs.image-whitelisting }}
+          - name:  "Check if grype.yaml exists"
+            run: |
+              if test -f grype.yaml; then
+                echo "grype.yaml exists"
+              else
+                echo "grype.yaml does not exist"
+              fi
           - name: "Create grype.yaml"
             run: |
               gh api \
