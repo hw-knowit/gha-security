@@ -112,6 +112,7 @@ jobs:
                       required: true
                       type: string
               EOF
+          - name: "Validate code scanning whitelist file"
             uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
             with:
               schema_path: valid_code_schema.yaml
