@@ -189,7 +189,7 @@ jobs:
                 -H "X-GitHub-Api-Version: 2022-11-28" \
                 /repos/${{ github.repository }}/code-scanning/alerts \
                 -F state="open" -F ref="${{ github.ref }}" -F per_page="5" > code_scanning_alerts.json
-              echo code_scanning_alerts.json
+              cat code_scanning_alerts.json
             env:
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 #          - name: "Whitelist code scanning alerts"
