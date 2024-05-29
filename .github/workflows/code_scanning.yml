@@ -112,16 +112,36 @@ jobs:
                       required: true
                       type: string
               EOF
-              echo 'GHA_SECURITY_CODE_WHITELIST_SCHEMA=code_whitelist_schema.yaml' >> $GITHUB_ENV
+              echo 'GHA_SECURITY_CODE-SCANNING_CODE_WHITELIST_SCHEMA=code_whitelist_schema.yaml' >> $GITHUB_ENV
+          - name: "Create image whitelist schema file"
+            run: |
+              cat > image_whitelist_schema.yaml << EOF
+              Image whitelisting:
+                required: true
+                type: list
+                schema:
+                  type: dict
+                  schema:
+                    cve:
+                      required: true
+                      type: string
+                    comment:
+                      required: true
+                      type: string
+                    reason:
+                      required: true
+                      type: string
+              EOF
+              echo 'GHA_SECURITY_CODE-SCANNING_IMAGE_WHITELIST_SCHEMA=image_whitelist_schema.yaml' >> $GITHUB_ENV
           - name: "Validate code scanning whitelist file"
             uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
             with:
-              schema_path: ${{ env.GHA_SECURITY_CODE_WHITELIST_SCHEMA }}
+              schema_path: ${{ env.GHA_SECURITY_CODE-SCANNING_CODE_WHITELIST_SCHEMA }}
               document_path: ${{ inputs.code-whitelist-file }}
           - name: "validate image whitelist file"
             uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
             with: 
-              schema_path: valid_image_schema.yaml
+              schema_path: ${{ env.GHA_SECURITY_CODE-SCANNING_IMAGE_WHITELIST_SCHEMA }}
               document_path: ${{ inputs.image-whitelisting }}
           - name:  "Check if grype.yaml exists"
             run: |
