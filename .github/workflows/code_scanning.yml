@@ -182,6 +182,7 @@ jobs:
 #            env:
 #              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           - name: "Get code scanning alerts"
+            id: get-code_scanning_alerts
             run: |
               python -c "
               import requests
@@ -205,11 +206,38 @@ jobs:
                 response = requests.get(response.links['next']['url'], headers=headers, json=data)
                 alerts.extend(response.json())
 
-              print(alerts)
+              print(f'::set-output name=alerts::{alerts}')
               "
             env: 
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               GITHUB_REF: ${{ github.ref }}
+          - name: "Whitelist code scanning alerts"
+            run: |
+              python -c "
+              import yaml
+
+              with open('${{ GHA_SECURITY_CODE-SCANNING_WHITELIST_FILE }}', 'r') as f:
+                  whitelisting = yaml.load(f, Loader=yaml.SafeLoader)
+
+              with open('${{ GHA_SECURITY_CODE-SCANNING_ALERTS }}') as f:
+                code_scanning_alerts = json.load(f)
+
+              for item in whitelisting:
+                for alert in code_scanning_alerts:
+                  if f'external/cwe/{item['cwe']}' in alert['rule']['tags']:
+                    url = 'https://api.github.com/repos/{}/code-scanning/alerts/{}'.format('${{ github.repository }}', alert['number'])
+                    data = {
+                      'state': 'dismissed',
+                      'dismissed_reason': item['reason'],
+                      'dismissed_comment': item['comment']
+                    }
+                    response = requests.patch(url, headers=headers, json=data)
+
+
+              "
+            env:
+              GHA_SECURITY_CODE-SCANNING_ALERTS: ${{ steps.get-code_scanning_alerts.outputs.alerts }}
+              GHA_SECURITY_CODE-SCANNING_WHITELIST_FILE: ${{ inputs.code-whitelist-file }}
 #          - name: "Get code scanning alerts"
 #            run: |
 #              gh api \
