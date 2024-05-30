@@ -190,11 +190,11 @@ jobs:
               headers = {
                 'Accept': 'application/vnd.github+json',
                 'X-GitHub-Api-Version': '2022-11-28',
-                'Authorization: Bearer': env.GITHUB_TOKEN
+                'Authorization: Bearer': ${{ env.GITHUB_TOKEN }}
               }
               data = {
                 'state': 'open',
-                'ref': env.GITHUB_REF,
+                'ref': ${{ env.GITHUB_REF }},
                 'per_page': '100'
               }
               response = requests.get(url, headers=headers, json=data)
