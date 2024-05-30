@@ -207,8 +207,11 @@ jobs:
                 response = requests.get(response.links['next']['url'], headers=headers, json=data)
                 alerts.extend(response.json())
 
-              alerts = json.dumps(alerts)
+              print(type(alerts[0]))
+              print(alerts[0])
+              alerts = json.dumps(alerts[0])
               print(type(alerts))
+              print(alerts)
               print(f'::set-output name=alerts::{alerts}')
                 "
             env: 
