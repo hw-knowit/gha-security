@@ -204,7 +204,7 @@ jobs:
                 response = requests.get(response.links['next']['url'], headers=headers, json=data)
                 alerts.extend(response.json())
 
-              cat alerts.json
+              print(alerts)
               "
             env: 
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
