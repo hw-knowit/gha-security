@@ -92,8 +92,8 @@ jobs:
           contents: write
           actions: read
       steps:
-#          - name: "Checkout repository"
-#            uses: actions/checkout@v4
+          - name: "Checkout repository"
+            uses: actions/checkout@v4
 #          - name: "Create code whitelist schema file"
 #            run: |
 #              cat > code_whitelist_schema.yaml << EOF
