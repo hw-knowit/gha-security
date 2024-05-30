@@ -191,7 +191,7 @@ jobs:
               headers = {
                 'Accept': 'application/vnd.github+json',
                 'X-GitHub-Api-Version': '2022-11-28',
-                'Authorization: Bearer': os.getenv('GITHUB_TOKEN')
+                'Authorization': 'token {}'.format(os.getenv('GITHUB_TOKEN'))
               }
               data = {
                 'state': 'open',
