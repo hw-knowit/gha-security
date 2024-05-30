@@ -207,8 +207,8 @@ jobs:
                 response = requests.get(response.links['next']['url'], headers=headers, json=data)
                 alerts.extend(response.json())
 
-              with open('code_scanning_alerts.json', 'w') as f:
-                json.dump(alerts, f)
+              print(type(alerts))
+              print(alerts)
                 "
 #              print(f'::set-output name=alerts::{alerts}')
             env: 
@@ -223,13 +223,7 @@ jobs:
 
               with open(os.getenv('GHA_SECURITY_CODE-SCANNING_WHITELIST_FILE'), 'r') as f:
                   whitelisting = yaml.load(f, Loader=yaml.SafeLoader)
-
-              with open('code_scanning_alerts.json') as f:
-                alerts = json.load(f)
               
-              print(type(alerts))
-              print(alerts)
-
               for item in whitelisting:
                 for alert in alerts:
                   print(type(alert))
