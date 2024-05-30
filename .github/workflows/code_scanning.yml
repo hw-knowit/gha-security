@@ -219,6 +219,7 @@ jobs:
               python -c "
               import yaml
               import os
+              import json
 
               with open(os.getenv('GHA_SECURITY_CODE-SCANNING_WHITELIST_FILE'), 'r') as f:
                   whitelisting = yaml.load(f, Loader=yaml.SafeLoader)
