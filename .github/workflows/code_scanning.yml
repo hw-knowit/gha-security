@@ -201,15 +201,16 @@ jobs:
                 'per_page': '100'
               }
               response = requests.get(url, headers=headers, json=data)
-              alerts_data = response.json()
+              alerts = response.json()
 
               while 'next' in response.links.keys():
                 response = requests.get(response.links['next']['url'], headers=headers, json=data)
-                alerts_data.extend(response.json())
+                alerts.extend(response.json())
 
-              alerts = json.loads(alerts_data)
-              print(f'::set-output name=alerts::{alerts}')
-              "
+              with open('code_scanning_alerts.json', 'w') as f:
+                json.dump(alerts, f)
+                "
+#              print(f'::set-output name=alerts::{alerts}')
             env: 
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               GITHUB_REF: ${{ github.ref }}
@@ -222,8 +223,8 @@ jobs:
               with open(os.getenv('GHA_SECURITY_CODE-SCANNING_WHITELIST_FILE'), 'r') as f:
                   whitelisting = yaml.load(f, Loader=yaml.SafeLoader)
 
-              with open(os.getenv('GHA_SECURITY_CODE-SCANNING_ALERTS'), 'r') as f:
-                  alerts = json.load(f)
+              with open('code_scanning_alerts.json') as f:
+                alerts = json.load(f)
 
               for item in whitelisting:
                 for alert in alerts:
