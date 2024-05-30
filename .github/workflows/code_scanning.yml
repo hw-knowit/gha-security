@@ -220,11 +220,8 @@ jobs:
               with open(os.getenv('GHA_SECURITY_CODE-SCANNING_WHITELIST_FILE'), 'r') as f:
                   whitelisting = yaml.load(f, Loader=yaml.SafeLoader)
 
-              with open(os.getenv('GHA_SECURITY_CODE-SCANNING_ALERTS')) as f:
-                code_scanning_alerts = json.load(f)
-
               for item in whitelisting:
-                for alert in code_scanning_alerts:
+                for alert in os.getenv('GHA_SECURITY_CODE-SCANNING_ALERTS'):
                   if 'external/cwe/{}'.format(item['cwe']) in alert['rule']['tags']:
                     url = 'https://api.github.com/repos/{}/code-scanning/alerts/{}'.format('${{ github.repository }}', alert['number'])
                     data = {
