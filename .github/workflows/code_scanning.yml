@@ -208,6 +208,7 @@ jobs:
                 alerts.extend(response.json())
 
               alerts = json.dumps(alerts)
+              print(type(alerts))
               print(f'::set-output name=alerts::{alerts}')
                 "
             env: 
