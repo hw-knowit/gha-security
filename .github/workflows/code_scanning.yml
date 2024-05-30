@@ -92,106 +92,134 @@ jobs:
           contents: write
           actions: read
       steps:
-          - name: "Checkout repository"
-            uses: actions/checkout@v4
-          - name: "Create code whitelist schema file"
-            run: |
-              cat > code_whitelist_schema.yaml << EOF
-              Code whitelisting:
-                required: true
-                type: list
-                schema:
-                  type: dict
-                  schema:
-                    cwe:
-                      required: true
-                      type: string
-                    comment:
-                      required: true
-                      type: string
-                    reason:
-                      required: true
-                      type: string
-              EOF
-              echo 'GHA_SECURITY_CODE-SCANNING_CODE_WHITELIST_SCHEMA=code_whitelist_schema.yaml' >> $GITHUB_ENV
-          - name: "Create image whitelist schema file"
-            run: |
-              cat > image_whitelist_schema.yaml << EOF
-              Image whitelisting:
-                required: true
-                type: list
-                schema:
-                  type: dict
-                  schema:
-                    cve:
-                      required: true
-                      type: string
-                    comment:
-                      required: true
-                      type: string
-                    reason:
-                      required: true
-                      type: string
-              EOF
-              echo 'GHA_SECURITY_CODE-SCANNING_IMAGE_WHITELIST_SCHEMA=image_whitelist_schema.yaml' >> $GITHUB_ENV
-          - name: "Validate code scanning whitelist file"
-            uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
-            with:
-              schema_path: ${{ env.GHA_SECURITY_CODE-SCANNING_CODE_WHITELIST_SCHEMA }}
-              document_path: ${{ inputs.code-whitelist-file }}
-          - name: "validate image whitelist file"
-            uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
-            with: 
-              schema_path: ${{ env.GHA_SECURITY_CODE-SCANNING_IMAGE_WHITELIST_SCHEMA }}
-              document_path: ${{ inputs.image-whitelisting }}
-          - name:  "Check if grype.yaml exists"
-            run: |
-              if test -f grype.yaml; then
-                echo 'GHA_SECURITY_CODE-SCANNING_GRYPE_YAML_EXISTS=true' >> $GITHUB_ENV
-              else
-                echo 'GHA_SECURITY_CODE-SCANNING_GRYPE_YAML_EXISTS=false' >> $GITHUB_ENV
-              fi
-          - name: "Create grype.yaml"
-            if: env.GHA_SECURITY_CODE-SCANNING_GRYPE_YAML_EXISTS == 'false'
-            run: |
-              gh api \
-                --method PUT \
-                -H "Accept: application/vnd.github+json" \
-                -H "X-GitHub-Api-Version: 2022-11-28" \
-                /repos/${{ github.repository }}/contents/grype.yaml \
-                -f "message=Create grype.yaml" -f "content=bXkgbmV3IGZpbGUgY29udGVudHM="
-            env:
-              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          - name: "Update grype.yaml"
-            if: env.GHA_SECURITY_CODE-SCANNING_GRYPE_YAML_EXISTS == 'true'
-            run: |
-              grype_file="$(gh api \
-                -H "Accept: application/vnd.github+json" \
-                -H "X-GitHub-Api-Version: 2022-11-28" \
-                /repos/${{ github.repository }}/contents/grype.yaml)"
-
-              grype_file_sha=$(echo "$grype_file" | jq -r '.sha')
-
-              gh api \
-                --method PUT \
-                -H "Accept: application/vnd.github+json" \
-                -H "X-GitHub-Api-Version: 2022-11-28" \
-                /repos/${{ github.repository }}/contents/grype.yaml \
-                -f "message=Update grype.yaml" -f "content=bXkgdXBkYXRlZCBmaWxlIGNvbnRlbnRz" \
-                -f "sha=$grype_file_sha"
-            env:
-              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          - name: "Checkout repository"
+#            uses: actions/checkout@v4
+#          - name: "Create code whitelist schema file"
+#            run: |
+#              cat > code_whitelist_schema.yaml << EOF
+#              Code whitelisting:
+#                required: true
+#                type: list
+#                schema:
+#                  type: dict
+#                  schema:
+#                    cwe:
+#                      required: true
+#                      type: string
+#                    comment:
+#                      required: true
+#                      type: string
+#                    reason:
+#                      required: true
+#                      type: string
+#              EOF
+#              echo 'GHA_SECURITY_CODE-SCANNING_CODE_WHITELIST_SCHEMA=code_whitelist_schema.yaml' >> $GITHUB_ENV
+#          - name: "Create image whitelist schema file"
+#            run: |
+#              cat > image_whitelist_schema.yaml << EOF
+#              Image whitelisting:
+#                required: true
+#                type: list
+#                schema:
+#                  type: dict
+#                  schema:
+#                    cve:
+#                      required: true
+#                      type: string
+#                    comment:
+#                      required: true
+#                      type: string
+#                    reason:
+#                      required: true
+#                      type: string
+#              EOF
+#              echo 'GHA_SECURITY_CODE-SCANNING_IMAGE_WHITELIST_SCHEMA=image_whitelist_schema.yaml' >> $GITHUB_ENV
+#          - name: "Validate code scanning whitelist file"
+#            uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
+#            with:
+#              schema_path: ${{ env.GHA_SECURITY_CODE-SCANNING_CODE_WHITELIST_SCHEMA }}
+#              document_path: ${{ inputs.code-whitelist-file }}
+#          - name: "validate image whitelist file"
+#            uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
+#            with: 
+#              schema_path: ${{ env.GHA_SECURITY_CODE-SCANNING_IMAGE_WHITELIST_SCHEMA }}
+#              document_path: ${{ inputs.image-whitelisting }}
+#          - name:  "Check if grype.yaml exists"
+#            run: |
+#              if test -f grype.yaml; then
+#                echo 'GHA_SECURITY_CODE-SCANNING_GRYPE_YAML_EXISTS=true' >> $GITHUB_ENV
+#              else
+#                echo 'GHA_SECURITY_CODE-SCANNING_GRYPE_YAML_EXISTS=false' >> $GITHUB_ENV
+#              fi
+#          - name: "Create grype.yaml"
+#            if: env.GHA_SECURITY_CODE-SCANNING_GRYPE_YAML_EXISTS == 'false'
+#            run: |
+#              gh api \
+#                --method PUT \
+#                -H "Accept: application/vnd.github+json" \
+#                -H "X-GitHub-Api-Version: 2022-11-28" \
+#                /repos/${{ github.repository }}/contents/grype.yaml \
+#                -f "message=Create grype.yaml" -f "content=bXkgbmV3IGZpbGUgY29udGVudHM="
+#            env:
+#              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          - name: "Update grype.yaml"
+#            if: env.GHA_SECURITY_CODE-SCANNING_GRYPE_YAML_EXISTS == 'true'
+#            run: |
+#              grype_file="$(gh api \
+#                -H "Accept: application/vnd.github+json" \
+#                -H "X-GitHub-Api-Version: 2022-11-28" \
+#                /repos/${{ github.repository }}/contents/grype.yaml)"
+#
+#              grype_file_sha=$(echo "$grype_file" | jq -r '.sha')
+#
+#              gh api \
+#                --method PUT \
+#                -H "Accept: application/vnd.github+json" \
+#                -H "X-GitHub-Api-Version: 2022-11-28" \
+#                /repos/${{ github.repository }}/contents/grype.yaml \
+#                -f "message=Update grype.yaml" -f "content=bXkgdXBkYXRlZCBmaWxlIGNvbnRlbnRz" \
+#                -f "sha=$grype_file_sha"
+#            env:
+#              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           - name: "Get code scanning alerts"
             run: |
-              gh api \
-                --method GET \
-                -H "Accept: application/vnd.github+json" \
-                -H "X-GitHub-Api-Version: 2022-11-28" \
-                /repos/${{ github.repository }}/code-scanning/alerts \
-                -F state="open" -F ref="${{ github.ref }}" -F per_page="5" > code_scanning_alerts.json
-              cat code_scanning_alerts.json
-            env:
+              python -c "
+              import requests
+
+              url = 'https://api.github.com/repos/${{ github.repository }}/code-scanning/alerts'
+              headers = {
+                'Accept': 'application/vnd.github+json',
+                'X-GitHub-Api-Version': '2022-11-28',
+                'Authorization: Bearer': env.GITHUB_TOKEN
+              }
+              data = {
+                'state': 'open',
+                'ref': env.GITHUB_REF,
+                'per_page': '100'
+              }
+              response = requests.get(url, headers=headers, json=data)
+              alerts = response.json()
+
+              while 'next' in response.links.keys():
+                response = requests.get(response.links['next']['url'], headers=headers, json=data)
+                alerts.extend(response.json())
+
+              cat alerts.json
+              "
+            env: 
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              GITHUB_REF: ${{ github.ref }}
+#          - name: "Get code scanning alerts"
+#            run: |
+#              gh api \
+#                --method GET \
+#                -H "Accept: application/vnd.github+json" \
+#                -H "X-GitHub-Api-Version: 2022-11-28" \
+#                /repos/${{ github.repository }}/code-scanning/alerts \
+#                -F state="open" -F ref="${{ github.ref }}" -F per_page="5" > code_scanning_alerts.json
+#              cat code_scanning_alerts.json
+#            env:
+#              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 #          - name: "Whitelist code scanning alerts"
 #            run: |
 #              python -c "
