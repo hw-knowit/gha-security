@@ -209,6 +209,10 @@ jobs:
 
               print(type(alerts))
               print(alerts)
+
+              alerts = json.dumps(alerts)
+              print(type(alerts))
+              print(alerts)
                 "
 #              print(f'::set-output name=alerts::{alerts}')
             env: 
