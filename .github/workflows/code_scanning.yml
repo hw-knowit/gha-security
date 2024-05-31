@@ -182,54 +182,39 @@ jobs:
 #            env:
 #              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           - name: "Get code scanning alerts"
-            id: get-code_scanning_alerts
+            run: |
+              gh api \
+                --method GET \
+                -H "Accept: application/vnd.github+json" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                /repos/${{ github.repository }}/code-scanning/alerts \
+                -F state="open" -F ref="${{ github.ref }}" -F per_page="100" > code_scanning_alerts.json
+            env:
+              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          - name: "Whitelist code scanning alerts"
             run: |
               python -c "
+              import yaml
+              import json
               import requests
               import os
-              import json
 
-              url = 'https://api.github.com/repos/${{ github.repository }}/code-scanning/alerts'
               headers = {
                 'Accept': 'application/vnd.github+json',
                 'X-GitHub-Api-Version': '2022-11-28',
                 'Authorization': 'token {}'.format(os.getenv('GITHUB_TOKEN'))
               }
-              data = {
-                'state': 'open',
-                'ref': os.getenv('GITHUB_REF'),
-                'per_page': '100'
-              }
-              response = requests.get(url, headers=headers, json=data)
-              alerts = response.json()
-
-              while 'next' in response.links.keys():
-                response = requests.get(response.links['next']['url'], headers=headers, json=data)
-                alerts.extend(response.json())
-
-              alerts = alerts[0]
-              print(f'::set-output name=alerts::{alerts}')
-                "
-            env: 
-              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              GITHUB_REF: ${{ github.ref }}
-          - name: "Whitelist code scanning alerts"
-            run: |
-              python -c "
-              import yaml
-              import os
-              import json
 
               with open(os.getenv('GHA_SECURITY_CODE-SCANNING_WHITELIST_FILE'), 'r') as f:
                   whitelisting = yaml.load(f, Loader=yaml.SafeLoader)
 
-              alerts = os.getenv('GHA_SECURITY_CODE-SCANNING_ALERTS')
-
+              with open('code_scanning_alerts.json') as f:
+                code_scanning_alerts = json.load(f)
+              
               for item in whitelisting:
-                for alert in alerts:
-                  print(type(alert))
-                  print(alert)
-                  if 'external/cwe/{}'.format(item['cwe']) in alert['rule']['tags']:
+                print(item)
+                for alert in code_scanning_alerts:
+                  if item['cwe'] in alert['rule']['tags']:
                     url = 'https://api.github.com/repos/{}/code-scanning/alerts/{}'.format('${{ github.repository }}', alert['number'])
                     data = {
                       'state': 'dismissed',
@@ -237,55 +222,11 @@ jobs:
                       'dismissed_comment': item['comment']
                     }
                     response = requests.patch(url, headers=headers, json=data)
-
-
               "
-            env:
-              GHA_SECURITY_CODE-SCANNING_ALERTS: ${{ steps.get-code_scanning_alerts.outputs.alerts }}
+            env: 
               GHA_SECURITY_CODE-SCANNING_WHITELIST_FILE: ${{ inputs.code-whitelist-file }}
-#          - name: "Get code scanning alerts"
-#            run: |
-#              gh api \
-#                --method GET \
-#                -H "Accept: application/vnd.github+json" \
-#                -H "X-GitHub-Api-Version: 2022-11-28" \
-#                /repos/${{ github.repository }}/code-scanning/alerts \
-#                -F state="open" -F ref="${{ github.ref }}" -F per_page="5" > code_scanning_alerts.json
-#              cat code_scanning_alerts.json
-#            env:
-#              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#          - name: "Whitelist code scanning alerts"
-#            run: |
-#              python -c "
-#              import yaml
-#              import json
-#              import requests
-#
-#              headers = {
-#                'Accept': 'application/vnd.github+json',
-#                'X-GitHub-Api-Version': '2022-11-28',
-#                'Authorization': 'token {}'.format('${{ secrets.GITHUB_TOKEN }}')
-#              }
-#
-#              with open('${{ inputs.whitelist-file }}', 'r') as f:
-#                  whitelisting = yaml.load(f, Loader=yaml.SafeLoader)
-#
-#              with open('code_scanning_alerts.json') as f:
-#                code_scanning_alerts = json.load(f)
-#              
-#              
-#              for item in whitelisting:
-#                for alert in code_scanning_alerts:
-#                  if item['cwe'] in alert['rule']['tags']:
-#                    url = 'https://api.github.com/repos/{}/code-scanning/alerts/{}'.format('${{ github.repository }}', alert['number'])
-#                    data = {
-#                      'state': 'dismissed',
-#                      'dismissed_reason': item['dismissed_reason'],
-#                      'dismissed_comment': item['dismissed_comment']
-#                    }
-#                    response = requests.patch(url, headers=headers, json=data)
-#              "
-#
+              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
 #    check-for-critical-alerts:
 #      runs-on: ubuntu-latest
 #      needs: whitelist-code_scanning_alerts
