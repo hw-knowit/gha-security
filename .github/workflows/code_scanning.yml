@@ -223,6 +223,7 @@ jobs:
                       'dismissed_comment': item['comment']
                     }
                     response = requests.patch(url, headers=headers, json=data)
+                    print(response.text)
               "
             env: 
               GHA_SECURITY_CODE-SCANNING_WHITELIST_FILE: ${{ inputs.code-whitelist-file }}
