@@ -215,7 +215,9 @@ jobs:
               for item in whitelisting['Code whitelisting']:
                 print(item)
                 for alert in code_scanning_alerts:
-                  if 'external/cwe/'+item['cwe'] in alert['rule']['tags']:
+                  item_cwe = 'external/cwe/'+item['cwe']
+                  print(item_cwe)
+                  if item_cwe in alert['rule']['tags']:
                     url = 'https://api.github.com/repos/{}/code-scanning/alerts/{}'.format('${{ github.repository }}', alert['number'])
                     data = {
                       'state': 'dismissed',
