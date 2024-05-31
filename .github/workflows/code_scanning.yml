@@ -207,9 +207,9 @@ jobs:
 
               with open(os.getenv('GHA_SECURITY_CODE-SCANNING_WHITELIST_FILE'), 'r') as f:
                   whitelisting = yaml.load(f, Loader=yaml.SafeLoader)
+              print(whitelisting)
 
               with open('code_scanning_alerts.json') as f:
-                next(f)
                 code_scanning_alerts = json.load(f)
               
               for item in whitelisting['Code whitelisting']:
