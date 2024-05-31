@@ -146,7 +146,7 @@ jobs:
               document_path: ${{ inputs.image-whitelisting }}
           - name:  "Check if grype.yaml exists"
             run: |
-              if test -f grype.yaml; then|
+              if test -f grype.yaml; then
                 echo 'GHA_SECURITY_CODE-SCANNING_GRYPE_YAML_EXISTS=true' >> $GITHUB_ENV
               else
                 echo 'GHA_SECURITY_CODE-SCANNING_GRYPE_YAML_EXISTS=false' >> $GITHUB_ENV
