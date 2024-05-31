@@ -213,10 +213,9 @@ jobs:
                 code_scanning_alerts = json.load(f)
               
               for item in whitelisting['Code whitelisting']:
-                print(item)
                 for alert in code_scanning_alerts:
                   item_cwe = 'external/cwe/'+item['cwe']
-                  print(item_cwe)
+                  print(alert['rule']['tags'])
                   if item_cwe in alert['rule']['tags']:
                     url = 'https://api.github.com/repos/{}/code-scanning/alerts/{}'.format('${{ github.repository }}', alert['number'])
                     data = {
