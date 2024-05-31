@@ -223,7 +223,7 @@ jobs:
                       case 'test': 
                         whitelist_reason = 'used in tests'
                       case _:
-                        print('::warning::Invalid reason provided: {}'.format(dismissal['reason']))
+                        print('::error::Whitelisting failed for {}. Invalid reason provided: {}'.format(dissmissal['cwe'],dismissal['reason']))
                         continue
                     url = 'https://api.github.com/repos/{}/code-scanning/alerts/{}'.format('${{ github.repository }}', alert['number'])
                     data = {
