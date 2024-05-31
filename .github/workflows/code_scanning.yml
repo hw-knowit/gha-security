@@ -207,21 +207,29 @@ jobs:
 
               with open(os.getenv('GHA_SECURITY_CODE-SCANNING_WHITELIST_FILE'), 'r') as f:
                   whitelisting = yaml.load(f, Loader=yaml.SafeLoader)
-              print(whitelisting)
 
               with open('code_scanning_alerts.json') as f:
                 code_scanning_alerts = json.load(f)
               
-              for item in whitelisting['Code whitelisting']:
+              for dismissal in whitelisting['Code whitelisting']:
                 for alert in code_scanning_alerts:
-                  item_cwe = 'external/cwe/'+item['cwe']
-                  print(alert['rule']['tags'])
-                  if item_cwe in alert['rule']['tags']:
+                  if 'external/cwe/' dismissal['cwe'] in alert['rule']['tags']:
+                    whitelist_reason = ''
+                    match dismissal['reason']:
+                      case 'false_positive':
+                        whitelist_reason = 'false positive'
+                      case 'wont_fix':
+                        whitelist_reason = 'won\'t fix'
+                      case 'test': 
+                        whitelist_reason = 'used in tests'
+                      case _:
+                        print('::warning::Invalid reason provided: {}'.format dismissal['reason']))
+                        continue
                     url = 'https://api.github.com/repos/{}/code-scanning/alerts/{}'.format('${{ github.repository }}', alert['number'])
                     data = {
                       'state': 'dismissed',
-                      'dismissed_reason': item['reason'],
-                      'dismissed_comment': item['comment']
+                      'dismissed_reason': whitelist_reason,
+                      'dismissed_comment': dismissal['comment']
                     }
                     response = requests.patch(url, headers=headers, json=data)
                     print(response.text)
