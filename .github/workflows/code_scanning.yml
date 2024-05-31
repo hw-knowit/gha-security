@@ -213,7 +213,7 @@ jobs:
               
               for dismissal in whitelisting['Code whitelisting']:
                 for alert in code_scanning_alerts:
-                  if 'external/cwe/' dismissal['cwe'] in alert['rule']['tags']:
+                  if 'external/cwe/'+dismissal['cwe'] in alert['rule']['tags']:
                     whitelist_reason = ''
                     match dismissal['reason']:
                       case 'false_positive':
@@ -223,7 +223,7 @@ jobs:
                       case 'test': 
                         whitelist_reason = 'used in tests'
                       case _:
-                        print('::warning::Invalid reason provided: {}'.format dismissal['reason']))
+                        print('::warning::Invalid reason provided: {}'.format(dismissal['reason']))
                         continue
                     url = 'https://api.github.com/repos/{}/code-scanning/alerts/{}'.format('${{ github.repository }}', alert['number'])
                     data = {
