@@ -165,8 +165,12 @@ jobs:
               print(grype_whitelisting)
               grype_whitelisting_yaml = yaml.dump(grype_whitelisting)
               print(grype_whitelisting_yaml)
-              GHA_SECURITY_CODE_SCANNING_IMAGE_WHITELISTING_BASE64 = base64.b64encode(grype_whitelisting_yaml.encode()).decode()
-              print(GHA_SECURITY_CODE_SCANNING_IMAGE_WHITELISTING_BASE64)
+              grype_whitelisting_base64 = base64.b64encode(grype_whitelisting_yaml.encode()).decode()
+              print(grype_whitelisting_base64)
+
+              env_file = os.getenv('GITHUB_ENV')
+              with open(env_file, 'a') as f:
+                  f.write('GHA_SECURITY_CODE_SCANNING_IMAGE_WHITELISTING_BASE64={}'.format(grype_whitelisting_base64))
               "
             env: 
               GHA_SECURITY_CODE_SCANNING_IMAGE_WHITELIST_FILE: ${{ inputs.image-whitelisting }}
@@ -196,10 +200,11 @@ jobs:
                 -H "Accept: application/vnd.github+json" \
                 -H "X-GitHub-Api-Version: 2022-11-28" \
                 /repos/${{ github.repository }}/contents/grype.yaml \
-                -f "message=Update grype.yaml" -f "content=bXkgdXBkYXRlZCBmaWxlIGNvbnRlbnRz" \
+                -f "message=Update grype.yaml" -f "content=${{ env.whitelist_content }}" \
                 -f "sha=$grype_file_sha"
             env:
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              whitelist_content: ${{ env.GHA_SECURITY_CODE_SCANNING_IMAGE_WHITELISTING_BASE64 }}
 #          - name: "Get code scanning alerts"
 #            run: |
 #              gh api \
