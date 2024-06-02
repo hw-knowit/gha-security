@@ -16,7 +16,7 @@ jobs:
 #    get-repository-languages:
 #        runs-on: ubuntu-latest
 #        outputs: 
-#            repository_languages: ${{ env.GHA_SECURITY_CODE-SCANNING_REPOSITORY_LANGUAGES }} 
+#            repository_languages: ${{ env.GHA_SECURITY_CODE_SCANNING_REPOSITORY_LANGUAGES }} 
 #        steps:
 #            - name: "Get repository languages"
 #              id: get-repository-languages
@@ -43,7 +43,7 @@ jobs:
 #                    ' | \
 #                    jq --slurp --compact-output 'unique')" # make a oneliner, and remove duplicates
 #            
-#                  echo 'GHA_SECURITY_CODE-SCANNING_REPOSITORY_LANGUAGES='$languages >> $GITHUB_ENV
+#                  echo 'GHA_SECURITY_CODE_SCANNING_REPOSITORY_LANGUAGES='$languages >> $GITHUB_ENV
 #              env:
 #                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 #
@@ -113,7 +113,7 @@ jobs:
 #                      required: true
 #                      type: string
 #              EOF
-#              echo 'GHA_SECURITY_CODE-SCANNING_CODE_WHITELIST_SCHEMA=code_whitelist_schema.yaml' >> $GITHUB_ENV
+#              echo 'GHA_SECURITY_CODE_SCANNING_CODE_WHITELIST_SCHEMA=code_whitelist_schema.yaml' >> $GITHUB_ENV
           - name: "Create image whitelist schema file"
             run: |
               cat > image_whitelist_schema.yaml << EOF
@@ -133,23 +133,23 @@ jobs:
                       required: true
                       type: string
               EOF
-              echo 'GHA_SECURITY_CODE-SCANNING_IMAGE_WHITELIST_SCHEMA=image_whitelist_schema.yaml' >> $GITHUB_ENV
+              echo 'GHA_SECURITY_CODE_SCANNING_IMAGE_WHITELIST_SCHEMA=image_whitelist_schema.yaml' >> $GITHUB_ENV
 #          - name: "Validate code scanning whitelist file"
 #            uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
 #            with:
-#              schema_path: ${{ env.GHA_SECURITY_CODE-SCANNING_CODE_WHITELIST_SCHEMA }}
+#              schema_path: ${{ env.GHA_SECURITY_CODE_SCANNING_CODE_WHITELIST_SCHEMA }}
 #              document_path: ${{ inputs.code-whitelist-file }}
           - name: "Validate image whitelist file"
             uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
             with: 
-              schema_path: ${{ env.GHA_SECURITY_CODE-SCANNING_IMAGE_WHITELIST_SCHEMA }}
+              schema_path: ${{ env.GHA_SECURITY_CODE_SCANNING_IMAGE_WHITELIST_SCHEMA }}
               document_path: ${{ inputs.image-whitelisting }}
           - name:  "Check if grype.yaml exists"
             run: |
               if test -f grype.yaml; then
-                echo 'GHA_SECURITY_CODE-SCANNING_GRYPE_YAML_EXISTS=true' >> $GITHUB_ENV
+                echo 'GHA_SECURITY_CODE_SCANNING_GRYPE_YAML_EXISTS=true' >> $GITHUB_ENV
               else
-                echo 'GHA_SECURITY_CODE-SCANNING_GRYPE_YAML_EXISTS=false' >> $GITHUB_ENV
+                echo 'GHA_SECURITY_CODE_SCANNING_GRYPE_YAML_EXISTS=false' >> $GITHUB_ENV
               fi
           - name: Convert content image whitelist to base64
             run: |
@@ -158,17 +158,20 @@ jobs:
               import base64
               import os
 
-              with open(os.getenv('GHA_SECURITY_CODE-SCANNING_IMAGE_WHITELIST_FILE'), 'r') as f:
+              with open(os.getenv('GHA_SECURITY_CODE_SCANNING_IMAGE_WHITELIST_FILE'), 'r') as f:
                   image_whitelisting = yaml.load(f, Loader=yaml.SafeLoader)
               
               grype_whitelisting = {'ignore': [{'vulnerability': dismissal['cve']} for dismissal in image_whitelisting['Image whitelisting']]}
+              print(grype_whitelisting)
               grype_whitelisting_yaml = yaml.dump(grype_whitelisting)
-              GHA_SECURITY_CODE-SCANNING_IMAGE_WHITELISTING_BASE64 = base64.b64encode(grype_whitelisting_yaml.encode()).decode()
+              print(grype_whitelisting_yaml)
+              GHA_SECURITY_CODE_SCANNING_IMAGE_WHITELISTING_BASE64 = base64.b64encode(grype_whitelisting_yaml.encode()).decode()
+              print(GHA_SECURITY_CODE_SCANNING_IMAGE_WHITELISTING_BASE64)
               "
             env: 
-              GHA_SECURITY_CODE-SCANNING_IMAGE_WHITELIST_FILE: ${{ inputs.image-whitelisting }}
+              GHA_SECURITY_CODE_SCANNING_IMAGE_WHITELIST_FILE: ${{ inputs.image-whitelisting }}
           - name: "Create grype.yaml"
-            if: env.GHA_SECURITY_CODE-SCANNING_GRYPE_YAML_EXISTS == 'false'
+            if: env.GHA_SECURITY_CODE_SCANNING_GRYPE_YAML_EXISTS == 'false'
             run: |
               gh api \
                 --method PUT \
@@ -179,7 +182,7 @@ jobs:
             env:
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           - name: "Update grype.yaml"
-            if: env.GHA_SECURITY_CODE-SCANNING_GRYPE_YAML_EXISTS == 'true'
+            if: env.GHA_SECURITY_CODE_SCANNING_GRYPE_YAML_EXISTS == 'true'
             run: |
               grype_file="$(gh api \
                 -H "Accept: application/vnd.github+json" \
@@ -203,7 +206,7 @@ jobs:
 #                --method GET \
 #                -H "Accept: application/vnd.github+json" \
 #                -H "X-GitHub-Api-Version: 2022-11-28" \
-#                /repos/${{ github.repository }}/code-scanning/alerts \
+#                /repos/${{ github.repository }}/CODE-SCANNING/alerts \
 #                -F state="open" -F ref="${{ github.ref }}" -F per_page="100" > code_scanning_alerts.json
 #            env:
 #              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -221,7 +224,7 @@ jobs:
 #                'Authorization': 'token {}'.format(os.getenv('GITHUB_TOKEN'))
 #              }
 #
-#              with open(os.getenv('GHA_SECURITY_CODE-SCANNING_WHITELIST_FILE'), 'r') as f:
+#              with open(os.getenv('GHA_SECURITY_CODE_SCANNING_WHITELIST_FILE'), 'r') as f:
 #                  whitelisting = yaml.load(f, Loader=yaml.SafeLoader)
 #
 #              with open('code_scanning_alerts.json') as f:
@@ -251,7 +254,7 @@ jobs:
 #                    print(response.text)
 #              "
 #            env: 
-#              GHA_SECURITY_CODE-SCANNING_WHITELIST_FILE: ${{ inputs.code-whitelist-file }}
+#              GHA_SECURITY_CODE_SCANNING_WHITELIST_FILE: ${{ inputs.code-whitelist-file }}
 #              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
 #    check-for-critical-alerts:
@@ -272,21 +275,21 @@ jobs:
 #              /repos/${{ github.repository }}/code-scanning/alerts \
 #              -F severity='critical' -F state='open' -F ref='${{ github.ref }}' -F per_page='100' )"
 #              if [ "$alerts" == "[]" ]; then
-#                echo 'GHA_SECURITY_CODE-SCANNING_CREATE_PR_COMMENT='false >> $GITHUB_ENV
+#                echo 'GHA_SECURITY_CODE_SCANNING_CREATE_PR_COMMENT='false >> $GITHUB_ENV
 #              else
-#                echo 'GHA_SECURITY_CODE-SCANNING_CREATE_PR_COMMENT='true >> $GITHUB_ENV
+#                echo 'GHA_SECURITY_CODE_SCANNING_CREATE_PR_COMMENT='true >> $GITHUB_ENV
 #              fi
 #          env:
 #            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 #        - name: "Create comment on pull request if critical alerts are found"
-#          if: env.GHA_SECURITY_CODE-SCANNING_CREATE_PR_COMMENT == 'true' && github.event_name == 'pull_request'
+#          if: env.GHA_SECURITY_CODE_SCANNING_CREATE_PR_COMMENT == 'true' && github.event_name == 'pull_request'
 #          run: |
 #            gh api /repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
 #              -H "Accept: application/vnd.github.v3+json" \
 #              --field "body=:no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: 
 #                Code scanning detected critical vulnerabilities in the code. In order to merge, please address these issues first. 
 #                The scan results can be found [here](https://github.com/${{ github.repository }}/security/code-scanning?query=is%3Aopen+pr%3A${{ github.event.pull_request.number }}). 
-#                If you believe one or more of the reported vulnerabilities are false positives/cannot be fixed/can be ignored, please see the [Code Scanning documentation](https://github.com/entur/gha-security/blob/code-scanning-ruleset/README-code_scanning.md#white-listing-vulnerabilities) on how to whitelist. 
+#                If you believe one or more of the reported vulnerabilities are false positives/cannot be fixed/can be ignored, please see the [Code Scanning documentation](https://github.com/entur/gha-security/blob/code-scanning-ruleset/README-code-scanning.md#white-listing-vulnerabilities) on how to whitelist. 
 #                :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry:"
 #          env:
 #            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
