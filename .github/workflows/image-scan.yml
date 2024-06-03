@@ -114,7 +114,7 @@ jobs:
             whitelist_content: ${{ env.GHA_SECURITY_CODE_SCANNING_IMAGE_WHITELISTING_BASE64 }}
         - name: "Anchore Grype Scan"
           id: anchore-scan
-          uses: anchore/scan-action@v3
+          uses: anchore/scan-action@3343887d815d7b07465f6fdcd395bd66508d486a
           with: 
             image: ${{ inputs.image_artifact }}.tar
             fail-build: true
