@@ -1,4 +1,4 @@
-name: 'Entur/Security/Docker Image Scan'
+name: 'Entur/Security/Image Scan'
 
 on:
     workflow_call:
@@ -10,7 +10,7 @@ on:
             image_whitelist_file:
                 description: 'Whitelisting file for image scanning alerts'
                 type: string
-                default: image_whitelisting.yaml
+                required: false
 
 jobs:
     image-scan:
