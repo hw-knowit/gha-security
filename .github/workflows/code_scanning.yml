@@ -174,7 +174,8 @@ jobs:
         
     check-for-critical-alerts:
       runs-on: ubuntu-latest
-      needs: codeql-analysis
+      if: always()
+      needs: whitelist_code_scanning_alerts
       permissions: 
           security-events: read # required to read code scanning alerts
 
