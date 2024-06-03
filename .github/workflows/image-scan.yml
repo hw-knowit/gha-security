@@ -16,7 +16,7 @@ jobs:
     image-scan:
         runs-on: ubuntu-latest
         permissions:
-            contents: read # required for checking out the repository
+            contents: write # required for checking out the repository and creating files
             issues: write # required for creating issues, and/or adding issue comments
             pull-requests: write # required for creating comments on pull requests
             security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
