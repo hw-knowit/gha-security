@@ -1,4 +1,4 @@
-# `gha-security/docker-image-scan`
+# `gha-security/docker-image-scanning`
 
 ## Usage
 
