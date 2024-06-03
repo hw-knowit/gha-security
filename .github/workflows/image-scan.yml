@@ -75,7 +75,6 @@ jobs:
           env: 
             GHA_SECURITY_CODE_SCANNING_IMAGE_WHITELIST_FILE: ${{ inputs.image_whitelist_file }}
         - name:  "Check if grype.yaml exists"
-          if: ${{ inputs.image_whitelist_file != '' }}
           run: |
             if test -f grype.yaml; then
               echo 'GHA_SECURITY_CODE_SCANNING_GRYPE_YAML_EXISTS=true' >> $GITHUB_ENV
