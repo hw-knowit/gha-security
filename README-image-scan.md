@@ -11,6 +11,7 @@ jobs:
     uses: entur/gha-security/.github/workflows/docker_image_scan.yml@main
     with:
         image_artifact: # The name of the image artifact to scan
+    
 ```
 
 ## Inputs
@@ -20,6 +21,7 @@ jobs:
 |                                           INPUT                                           |  TYPE  | REQUIRED |    DEFAULT     |                 DESCRIPTION                  |
 |-------------------------------------------------------------------------------------------|--------|----------|----------------|----------------------------------------------|
 | <a name="input_image_artifact"></a>[image_artifact](#input_image_artifact)                | string |  true    |                |  The name of the image artifact to scan      |
+| <a name="input_image_whitelisting_file"></a>[image_whitelisting_file](#input_image_whitelisting_file) | string |  false   | `"image_whitelisting.yaml"` | The path to the file <br>containing the whitelisting rules, starting <br>from the root of the <br>repository  |
 
 <!-- AUTO-DOC-INPUT:END -->
 
@@ -69,40 +71,24 @@ jobs:
 
 
 ### White-listing vulnerabilities
-The reusable workflow uses the [Grype scanner](https://github.com/marketplace/actions/anchore-container-scan) to scan the Docker image for vulnerabilities. The scanner will fail if any critical vulnerabilities are found. If you believe that a found vulnerbility is a false positive or otherwise not relevant, you can tell Grype to ignore matches by specifying one or more "ignore rules" in your Grype configuration file (add a .grype.yaml file at your repository root). This causes Grype not to report any vulnerability matches that meet the criteria specified by any of your ignore rules.
+The reusable workflow uses the [Grype scanner](https://github.com/marketplace/actions/anchore-container-scan) to scan the Docker image for vulnerabilities. The scanner will fail if any critical vulnerabilities are found. If you believe that a found vulnerability is a false positive or otherwise not relevant, you can create a whitelist file (YAML-file) that dismisses all alerts that matches a vulnerability ID.
 
-Each rule can specify any combination of the following criteria:
-- vulnerability ID (e.g. `"CVE-2008-4318"`)
-- namespace (e.g. `"nvd"`)
-- fix state (allowed values: `"fixed"`, `"not-fixed"`, `"wont-fix"`, or `"unknown"`)
-- package name (e.g. `"libcurl"`)
-- package version (e.g. `"1.5.1"`)
-- package language (e.g. `"python"`; these values are defined [here](https://github.com/anchore/syft/blob/main/syft/pkg/language.go#L14-L23))
-- package type (e.g. `"npm"`; these values are defined [here](https://github.com/anchore/syft/blob/main/syft/pkg/type.go#L10-L24))
-- package location (e.g. `"/usr/local/lib/node_modules/**"`; supports glob patterns)
+The whitelist file should be placed in the root of the repository, and the path to the file should be provided as an input to the workflow. The file must have the following format:
 
-
-Here's an example `~/.grype.yaml` that demonstrates the expected format for ignore rules:
-
-```yml	
-ignore:
-  # This is the full set of supported rule fields:
-  - vulnerability: CVE-2008-4318
-    fix-state: unknown
-    # VEX fields apply when Grype reads vex data:
-    vex-status: not_affected
-    vex-justification: vulnerable_code_not_present
-    package:
-      name: libcurl
-      version: 1.5.1
-      type: npm
-      location: "/usr/local/lib/node_modules/**"
-
-  # We can make rules to match just by vulnerability ID:
-  - vulnerability: CVE-2014-54321
-
-  # ...or just by a single package field:
-  - package:
-      type: gem
+```yaml
+Code whitelisting:
+- cve: external/cve/{cwe-id}
+  comment: {comment explaining why the vulnerability is dismissed}
+  reason: {reason for dismissing the vulnerability}
 ```
 
+The `cve` field should be the CVE-ID of the vulnerability you want to dismiss, the `comment` field should be a comment explaining why the vulnerability is dismissed, and the `reason` field should be a short description on why the vulnerability is dismissed.
+
+### Example
+
+```yaml
+Image whitelisting:
+- cve: "CVE-2021-1234"
+  comment: "This alert is a false positive"
+  reason: "false_positive"
+```
