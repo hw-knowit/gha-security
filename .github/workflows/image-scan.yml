@@ -61,7 +61,7 @@ jobs:
             python -c "
             import yaml
             import base64
-            import o 
+            import os 
             with open(os.getenv('GHA_SECURITY_CODE_SCANNING_IMAGE_WHITELIST_FILE'), 'r') as f:
                 image_whitelisting = yaml.load(f, Loader=yaml.SafeLoader)
            
