@@ -83,8 +83,8 @@ jobs:
             fi
         - name: "Create grype.yaml"
           if: |
-            env.GHA_SECURITY_CODE_SCANNING_GRYPE_YAML_EXISTS == 'false' && 
-            ${{ inputs.image_whitelist_file != '' }}
+            ${{ env.GHA_SECURITY_CODE_SCANNING_GRYPE_YAML_EXISTS == 'false' && 
+            inputs.image_whitelist_file != '' }}
           run: |
             gh api \
               --method PUT \
@@ -97,8 +97,8 @@ jobs:
             whitelist_content: ${{ env.GHA_SECURITY_CODE_SCANNING_IMAGE_WHITELISTING_BASE64 }}
         - name: "Update grype.yaml"
           if: | 
-            env.GHA_SECURITY_CODE_SCANNING_GRYPE_YAML_EXISTS == 'true' && 
-            ${{ inputs.image_whitelist_file != '' }}
+            ${{  env.GHA_SECURITY_CODE_SCANNING_GRYPE_YAML_EXISTS == 'true' && 
+            inputs.image_whitelist_file != '' }}
           run: |
             grype_file="$(gh api \
               -H "Accept: application/vnd.github+json" \
