@@ -103,15 +103,14 @@ jobs:
 #            repository: ${{ inputs.external_code_whitelist_repository }}
 #            whitelist_file: ${{ inputs.external_code_whitelist_file }}
 #            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        - name: "Checkout repository to get external code whitelist file"
+        - name: "Checkout repository"
+          uses: actions/checkout@v4
+        - name: "Checkout external repository"
           if: ${{ inputs.external_code_whitelist_file != '' }}
           uses: actions/checkout@v4
           with: 
             repository: entur/${{ inputs.external_code_whitelist_repository }}
-            path: external_repository
-        - name: "Checkout repository to get local code whitelist file"
-          if: ${{ inputs.code_whitelist_file != '' }}
-          uses: actions/checkout@v4
+            path: './external_repository'
         - name: "Print external code whitelist file"
           if: ${{ inputs.external_code_whitelist_file != '' }}
           run: |
