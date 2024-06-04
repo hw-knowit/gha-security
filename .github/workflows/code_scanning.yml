@@ -112,6 +112,10 @@ jobs:
         - name: "Checkout repository to get local code whitelist file"
           if: ${{ inputs.code_whitelist_file != '' }}
           uses: actions/checkout@v4
+        - name: "Print external code whitelist file"
+          if: ${{ inputs.external_code_whitelist_file != '' }}
+          run: |
+            cat external_repository/${{ inputs.external_code_whitelist_file }}
         - name: "Create code whitelist schema file"
           run: |
             cat > code_whitelist_schema.yaml << EOF
