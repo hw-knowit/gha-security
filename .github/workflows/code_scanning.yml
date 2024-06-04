@@ -115,6 +115,7 @@ jobs:
           if: ${{ inputs.external_code_whitelist_file != '' }}
           run: |
             cat external_repository/${{ inputs.external_code_whitelist_file }}
+            ls -la external_repository
         - name: "Create code whitelist schema file"
           run: |
             cat > code_whitelist_schema.yaml << EOF
