@@ -100,7 +100,7 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             /repos/entur/${{ env.repository }}/contents/${{ env.file }} > code_whitelist_file.yaml
-            echo code_whitelist_file.yaml
+            cat code_whitelist_file.yaml
           env:
             repository: ${{ inputs.external_code_whitelist_repository }}
             file: ${{ inputs.external_code_whitelist_file }}
