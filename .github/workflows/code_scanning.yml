@@ -87,8 +87,6 @@ jobs:
     validate_code_whitelist_file:
       if: ${{ inputs.code_whitelist_file != '' }} || ${{ inputs.external_code_whitelist_file != '' }}
       runs-on: ubuntu-latest
-      outputs:
-        code_whitelist_file: ${{ env.GHA_SECURITY_CODE_SCANNING_WHITELIST_FILE }}
       permissions:
           contents: read
       steps:
@@ -100,7 +98,7 @@ jobs:
             -H "Accept: application/vnd.github.raw+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             /repos/entur/${{ env.repository }}/contents/${{ env.file }} > code_whitelist_file.yaml
-            cat code_whitelist_file.yaml
+            echo 'GHA_SECURITY_EXTERNAL_CODE_SCANNING_WHITELIST_FILE=code_whitelist_file.yaml' >> $GITHUB_ENV
           env:
             repository: ${{ inputs.external_code_whitelist_repository }}
             file: ${{ inputs.external_code_whitelist_file }}
@@ -125,6 +123,18 @@ jobs:
                     type: string
             EOF
             echo 'GHA_SECURITY_CODE_SCANNING_CODE_WHITELIST_SCHEMA=code_whitelist_schema.yaml' >> $GITHUB_ENV
+        - name: "Validate code scanning whitelist file against schema"
+          if: ${{ inputs.code_whitelist_file != '' }}
+          uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
+          with:
+            schema_path: ${{ env.GHA_SECURITY_CODE_SCANNING_CODE_WHITELIST_SCHEMA }}
+            document_path: ${{ inputs.code_whitelist_file }}
+        - name: "Validate external code scanning whitelist file against schema"
+          if: ${{ inputs.external_code_whitelist_file != '' }}
+          uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
+          with:
+            schema_path: ${{ env.GHA_SECURITY_CODE_SCANNING_CODE_WHITELIST_SCHEMA }}
+            document_path: ${{ env.GHA_SECURITY_EXTERNAL_CODE_SCANNING_WHITELIST_FILE }}
 
 
 #    whitelist_code_scanning_alerts:
