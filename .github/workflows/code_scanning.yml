@@ -111,6 +111,7 @@ jobs:
           with: 
             repository: entur/${{ inputs.external_code_whitelist_repository }}
             path: './external_repository'
+            sparse-checkout: 'whitelisting'
         - name: "Print external code whitelist file"
           if: ${{ inputs.external_code_whitelist_file != '' }}
           run: |
