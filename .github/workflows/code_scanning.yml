@@ -103,6 +103,9 @@ jobs:
             repository: ${{ inputs.external_code_whitelist_repository }}
             file: ${{ inputs.external_code_whitelist_file }}
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        - name: "Checkout repository to get local code whitelist file"
+          if: ${{ inputs.code_whitelist_file != '' }}
+          uses: actions/checkout@v4
         - name: "Create code whitelist schema file"
           run: |
             cat > code_whitelist_schema.yaml << EOF
