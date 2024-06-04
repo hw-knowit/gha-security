@@ -104,6 +104,7 @@ jobs:
           env:
             repository: ${{ inputs.external_code_whitelist_repository }}
             file: ${{ inputs.external_code_whitelist_file }}
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 #    whitelist_code_scanning_alerts:
 #      if: ${{ inputs.code_whitelist_file != '' }}
