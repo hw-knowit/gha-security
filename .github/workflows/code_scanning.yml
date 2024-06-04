@@ -114,7 +114,7 @@ jobs:
         - name: "Print external code whitelist file"
           if: ${{ inputs.external_code_whitelist_file != '' }}
           run: |
-            cat external_repository/${{ inputs.external_code_whitelist_file }}
+            cat external_repository/whitelisting/${{ inputs.external_code_whitelist_file }}
             ls -la external_repository
         - name: "Create code whitelist schema file"
           run: |
