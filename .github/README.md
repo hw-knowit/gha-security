@@ -3,11 +3,11 @@
       <br>entur/gha-security<br>
 </h1>
 
-[![CI](https://github.com/entur/gha-code-scanning/actions/workflows/ci.yml/badge.svg)](https://github.com/entur/gha-code-scanning/actions/workflows/ci.yml)
+[![CI](https://github.com/entur/gha-security/actions/workflows/ci.yml/badge.svg)](https://github.com/entur/gha-security/actions/workflows/ci.yml)
 
 GitHub Actions for working with security tools.
 
-- [Code Scanning](../README-code_scanning.md)
-- [Docker image scan](../README-docker-image-scan.md)
+- [Code scan](../README-code-scan.md)
+- [Docker scan](../README-docker-scan.md)
 
 
