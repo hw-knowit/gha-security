@@ -105,9 +105,9 @@ jobs:
 #            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         - name: "Checkout repository"
           uses: actions/checkout@v4
-          with:
-            sparse-checkout: ${{ inputs.code-whitelist }}
-            sparse-checkout-cone-mode: false
+#          with:
+#            sparse-checkout: ${{ inputs.code-whitelist }}
+#            sparse-checkout-cone-mode: false
         - name: "Print code whitelist file"
           working-directory: .
           run: ls -la
@@ -118,8 +118,8 @@ jobs:
           with: 
             repository: entur/${{ inputs.external-code-whitelist-repository }}
             path: './external_repository'
-            sparse-checkout: ${{ inputs.external-code-whitelist }}
-            sparse-checkout-cone-mode: false
+#            sparse-checkout: ${{ inputs.external-code-whitelist }}
+#            sparse-checkout-cone-mode: false
         - name: "Print external code whitelist file"
           if: ${{ inputs.external-code-whitelist != '' }}
           run: |
