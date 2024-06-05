@@ -90,11 +90,12 @@ jobs:
       permissions:
           contents: read
       steps:
-#        - name: "Checkout repository"
-#          uses: actions/checkout@v4
-#          with:
-#            sparse-checkout: ${{ inputs.code-whitelist }}
-#            sparse-checkout-cone-mode: false
+        - name: "Checkout repository"
+          if: ${{ inputs.code-whitelist != '' }}
+          uses: actions/checkout@v4
+          with:
+            sparse-checkout: ${{ inputs.code-whitelist }}
+            sparse-checkout-cone-mode: false
         - name: "Checkout external repository"
           if: ${{ inputs.external-code-whitelist != '' }}
           uses: actions/checkout@v4
@@ -103,10 +104,6 @@ jobs:
             path: './external_repository'
             sparse-checkout: ${{ inputs.external-code-whitelist }}
             sparse-checkout-cone-mode: false
-        - name: "Print external code whitelist file"
-          working-directory: .
-          run: ls -lart
-          shell: bash
         - name: "Create code whitelist schema file"
           run: |
             cat > code_whitelist_schema.yaml << EOF
@@ -127,18 +124,18 @@ jobs:
                     type: string
                     allowed: [false_positive, wont_fix, test]
             EOF
-            echo 'GHA_SECURITY_CODE_SCANNING_CODE_WHITELIST_SCHEMA=code_whitelist_schema.yaml' >> $GITHUB_ENV
+            echo 'GHA_SECURITY_CODE_SCAN_CODE_WHITELIST_SCHEMA=code_whitelist_schema.yaml' >> $GITHUB_ENV
         - name: "Validate code scanning whitelist file against schema"
           if: ${{ inputs.code-whitelist != '' }}
           uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
           with:
-            schema_path: ${{ env.GHA_SECURITY_CODE_SCANNING_CODE_WHITELIST_SCHEMA }}
+            schema_path: ${{ env.GHA_SECURITY_CODE_SCAN_CODE_WHITELIST_SCHEMA }}
             document_path: ${{ inputs.code-whitelist }}
         - name: "Validate external code scanning whitelist file against schema"
           if: ${{ inputs.external-code-whitelist != '' }}
           uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
           with:
-            schema_path: ${{ env.GHA_SECURITY_CODE_SCANNING_CODE_WHITELIST_SCHEMA }}
+            schema_path: ${{ env.GHA_SECURITY_CODE_SCAN_CODE_WHITELIST_SCHEMA }}
             document_path: external_repository/${{ inputs.external-code-whitelist }}
 
 #    whitelist_code_scanning_alerts:
@@ -174,11 +171,11 @@ jobs:
 #                      required: true
 #                      type: string
 #              EOF
-#              echo 'GHA_SECURITY_CODE_SCANNING_CODE_WHITELIST_SCHEMA=code_whitelist_schema.yaml' >> $GITHUB_ENV
+#              echo 'GHA_SECURITY_CODE_SCAN_CODE_WHITELIST_SCHEMA=code_whitelist_schema.yaml' >> $GITHUB_ENV
 #          - name: "Validate code scanning whitelist file against schema"
 #            uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
 #            with:
-#              schema_path: ${{ env.GHA_SECURITY_CODE_SCANNING_CODE_WHITELIST_SCHEMA }}
+#              schema_path: ${{ env.GHA_SECURITY_CODE_SCAN_CODE_WHITELIST_SCHEMA }}
 #              document_path: ${{ inputs.code-whitelist }}
 #          - name: "Get code scanning alerts"
 #            run: |
