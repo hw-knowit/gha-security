@@ -107,22 +107,46 @@ jobs:
         - name: "Create code whitelist schema file"
           run: |
             cat > code_whitelist_schema.yaml << EOF
-            Code whitelisting:
+            apiVersion: 
               required: true
-              type: list
-              schema:
+              type: string
+              allowed:
+                - entur.io/v1alpha1
+            kind:
+                required: true
+                type: string
+                allowed:
+                  - CodeScanConfig
+            metadata:
+                required: true
                 type: dict
                 schema:
-                  cwe:
+                  name:
                     required: true
                     type: string
-                  comment:
-                    required: true
-                    type: string
-                  reason:
-                    required: true
-                    type: string
-                    allowed: [false_positive, wont_fix, test]
+            spec:
+              required: true
+              type: dict
+              schema:
+                whitelist:
+                  required: true
+                  type: list
+                  schema:
+                    type: dict
+                    schema:
+                      cwe:
+                        required: true
+                        type: string
+                      comment:
+                        required: true
+                        type: string
+                      reason:
+                        required: true
+                        type: string
+                        allowed:
+                        - false_positive
+                        - wont_fix
+                        - test
             EOF
             echo 'GHA_SECURITY_CODE_SCAN_CODE_WHITELIST_SCHEMA=code_whitelist_schema.yaml' >> $GITHUB_ENV
         - name: "Validate code scanning whitelist file against schema"
