@@ -90,15 +90,11 @@ jobs:
       permissions:
           contents: read
       steps:
-        - name: "Checkout repository"
-          uses: actions/checkout@v4
-          with:
-            sparse-checkout: ${{ inputs.code-whitelist }}
-            sparse-checkout-cone-mode: false
-        - name: "Print code whitelist file"
-          working-directory: .
-          run: ls -lart
-          shell: bash
+#        - name: "Checkout repository"
+#          uses: actions/checkout@v4
+#          with:
+#            sparse-checkout: ${{ inputs.code-whitelist }}
+#            sparse-checkout-cone-mode: false
         - name: "Checkout external repository"
           if: ${{ inputs.external-code-whitelist != '' }}
           uses: actions/checkout@v4
