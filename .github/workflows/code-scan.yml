@@ -136,6 +136,7 @@ jobs:
                   reason:
                     required: true
                     type: string
+                    allowed: [false_positive, wont_fix, test]
             EOF
             echo 'GHA_SECURITY_CODE_SCANNING_CODE_WHITELIST_SCHEMA=code_whitelist_schema.yaml' >> $GITHUB_ENV
         - name: "Validate code scanning whitelist file against schema"
