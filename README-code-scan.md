@@ -1,4 +1,4 @@
-# `gha-security/code_scanning`
+# `gha-security/code-scan`
 
 ## Usage
 
@@ -6,9 +6,9 @@ Add the following step to your workflow configuration:
 
 ```yml
 jobs:
-  code-scanning:
-    name: Code Scanning
-    uses: entur/gha-security/.github/workflows/code_scanning.yml@v0.1.0
+  code-scan:
+    name: Code Scan
+    uses: entur/gha-security/.github/workflows/code-scan.yml@v0.2.0
 ```
 
 ## Inputs
@@ -17,7 +17,7 @@ jobs:
 
 |                                           INPUT                                           |  TYPE  | REQUIRED | DEFAULT |                   DESCRIPTION                   |
 |-------------------------------------------------------------------------------------------|--------|----------|---------|-------------------------------------------------|
-| <a name="input_code_whitelist_file"></a>[code_whitelist_file](#input_code_whitelist_file) | string |  false   |         | Whitelisting file for code scanning <br>alerts  |
+| <a name="input_code_whitelist"></a>[code_whitelist](#input_code_whitelist) | string |  false   |         | Whitelisting file for code scanning <br>alerts  |
 
 <!-- AUTO-DOC-INPUT:END -->
 
@@ -42,9 +42,9 @@ on:
             - master
   
 jobs:
-    code-scanning:
-        name: Code Scanning
-        uses: entur/gha-security/.github/workflows/code_scanning.yml@main
+    code-scan:
+        name: Code Scan
+        uses: entur/gha-security/.github/workflows/code-scan.yml@main
 ```
 
 ### White-listing vulnerabilities
@@ -54,7 +54,7 @@ The whitelist file should be placed in the root of the repository, and the path 
 
 ```yaml
 Code whitelisting:
-- cwe: external/cwe/{cwe-id}
+- cwe: {cwe-id}
   comment: {comment explaining why the vulnerability is dismissed}
   reason: "false_positive" / "wont_fix" / "test" 
 ```

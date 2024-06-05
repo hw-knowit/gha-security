@@ -1,4 +1,4 @@
-# `gha-security/docker-image-scanning`
+# `gha-security/docker-scan`
 
 ## Usage
 
@@ -6,9 +6,9 @@ Add the following step to your workflow configuration:
 
 ```yml
 jobs:
-  docker-image-scan:
-    name: Docker Image Scan
-    uses: entur/gha-security/.github/workflows/docker_image_scan.yml@main
+  docker-scan:
+    name: Docker Scan
+    uses: entur/gha-security/.github/workflows/docker-scan.yml@main
     with:
         image_artifact: # The name of the image artifact to scan
     
@@ -21,7 +21,7 @@ jobs:
 |                                           INPUT                                           |  TYPE  | REQUIRED |    DEFAULT     |                 DESCRIPTION                  |
 |-------------------------------------------------------------------------------------------|--------|----------|----------------|----------------------------------------------|
 | <a name="input_image_artifact"></a>[image_artifact](#input_image_artifact)                | string |  true    |                |  The name of the image artifact to scan      |
-| <a name="input_image_whitelisting_file"></a>[image_whitelisting_file](#input_image_whitelisting_file) | string |  false   | `"image_whitelisting.yaml"` | The path to the file <br>containing the whitelisting rules, starting <br>from the root of the <br>repository  |
+| <a name="input_image_whitelist"></a>[image_whitelist](#input_image_whitelist) | string |  false   | `"image_whitelist.yaml"` | The path to the file <br>containing the whitelisting rules, starting <br>from the root of the <br>repository  |
 
 <!-- AUTO-DOC-INPUT:END -->
 
@@ -59,12 +59,12 @@ jobs:
 
   docker-image-scan:
     needs: docker-build
-    uses: entur/gha-security/.github/workflows/docker-image-scan.yml@main
+    uses: entur/gha-security/.github/workflows/docker-scan.yml@main
     with:
         image_artifact: ${{ needs.docker-build.outputs.image_artifact }}
 
   docker-push:
-    needs: docker-image-scan
+    needs: docker-scan
     uses: entur/gha-docker/.github/workflows/push.yml@main
     secrets: inherit
 ```
@@ -76,8 +76,8 @@ The reusable workflow uses the [Grype scanner](https://github.com/marketplace/ac
 The whitelist file should be placed in the root of the repository, and the path to the file should be provided as an input to the workflow. The file must have the following format:
 
 ```yaml
-Code whitelisting:
-- cve: external/cve/{cwe-id}
+Image whitelisting:
+- cve: {cve-id}
   comment: {comment explaining why the vulnerability is dismissed}
   reason: {reason for dismissing the vulnerability}
 ```

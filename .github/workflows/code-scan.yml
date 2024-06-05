@@ -3,15 +3,15 @@ name: 'Entur/Security/Code Scanning'
 on:
     workflow_call: 
       inputs:
-        code_whitelist_file:
+        code-whitelist:
           description: 'Whitelisting file for code scanning alerts, located in the same repository. Must be in the root of the repository'
           type: string
           required: false
-        external_code_whitelist_file:
+        external-code-whitelist:
           description: 'Whitelisting file for code scanning alerts, located in a different repository. Must be in the root of the repository'
           type: string
           required: false
-        external_code_whitelist_repository:
+        external-code-whitelist-repository:
           description: 'Repository containing the external whitelisting file'
           type: string
           required: false

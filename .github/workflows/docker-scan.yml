@@ -7,13 +7,13 @@ on:
                 description: 'Image artifact to scan'
                 type: string
                 required: true
-            image_whitelist_file:
+            image_whitelist:
                 description: 'Whitelisting file for image scanning alerts'
                 type: string
                 required: false
 
 jobs:
-    image-scan:
+    docker-scan:
         runs-on: ubuntu-latest
         permissions:
             contents: write # required for checking out the repository and creating files
@@ -29,7 +29,7 @@ jobs:
           with:
             name: ${{ inputs.image_artifact }}
         - name: "Create image whitelist schema file"
-          if: ${{ inputs.image_whitelist_file != '' }}
+          if: ${{ inputs.image_whitelist != '' }}
           run: |
             cat > image_whitelist_schema.yaml << EOF
             Image whitelisting:
@@ -50,19 +50,19 @@ jobs:
             EOF
             echo 'GHA_SECURITY_CODE_SCANNING_IMAGE_WHITELIST_SCHEMA=image_whitelist_schema.yaml' >> $GITHUB_ENV
         - name: "Validate image whitelist file against schema"
-          if: ${{ inputs.image_whitelist_file != '' }}
+          if: ${{ inputs.image_whitelist != '' }}
           uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
           with: 
             schema_path: ${{ env.GHA_SECURITY_CODE_SCANNING_IMAGE_WHITELIST_SCHEMA }}
-            document_path: ${{ inputs.image_whitelist_file }}
+            document_path: ${{ inputs.image_whitelist }}
         - name: Convert image whitelist content to base64
-          if: ${{ inputs.image_whitelist_file != '' }}
+          if: ${{ inputs.image_whitelist != '' }}
           run: |
             python -c "
             import yaml
             import base64
             import os 
-            with open(os.getenv('GHA_SECURITY_CODE_SCANNING_IMAGE_WHITELIST_FILE'), 'r') as f:
+            with open(os.getenv('GHA_SECURITY_CODE_SCANNING_IMAGE_WHITELIST'), 'r') as f:
                 image_whitelisting = yaml.load(f, Loader=yaml.SafeLoader)
            
             grype_whitelisting = {'ignore': [{'vulnerability': dismissal['cve']} for dismissal in image_whitelisting['Image whitelisting']]}
@@ -73,9 +73,9 @@ jobs:
                 f.write('GHA_SECURITY_CODE_SCANNING_IMAGE_WHITELISTING_BASE64={}'.format(grype_whitelisting_base64))
             "
           env: 
-            GHA_SECURITY_CODE_SCANNING_IMAGE_WHITELIST_FILE: ${{ inputs.image_whitelist_file }}
+            GHA_SECURITY_CODE_SCANNING_IMAGE_WHITELIST: ${{ inputs.image_whitelist }}
         - name:  "Check if grype.yaml exists"
-          if: ${{ inputs.image_whitelist_file != '' }}
+          if: ${{ inputs.image_whitelist != '' }}
           run: |
             if test -f grype.yaml; then
               echo 'GHA_SECURITY_CODE_SCANNING_GRYPE_YAML_EXISTS=true' >> $GITHUB_ENV
@@ -83,7 +83,7 @@ jobs:
               echo 'GHA_SECURITY_CODE_SCANNING_GRYPE_YAML_EXISTS=false' >> $GITHUB_ENV
             fi
         - name: "Create grype.yaml"
-          if: env.GHA_SECURITY_CODE_SCANNING_GRYPE_YAML_EXISTS == 'false' && inputs.image_whitelist_file != ''
+          if: env.GHA_SECURITY_CODE_SCANNING_GRYPE_YAML_EXISTS == 'false' && inputs.image_whitelist != ''
           run: |
             gh api \
               --method PUT \
@@ -95,7 +95,7 @@ jobs:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             whitelist_content: ${{ env.GHA_SECURITY_CODE_SCANNING_IMAGE_WHITELISTING_BASE64 }}
         - name: "Update grype.yaml"
-          if: env.GHA_SECURITY_CODE_SCANNING_GRYPE_YAML_EXISTS == 'true' && inputs.image_whitelist_file != ''
+          if: env.GHA_SECURITY_CODE_SCANNING_GRYPE_YAML_EXISTS == 'true' && inputs.image_whitelist != ''
           run: |
             grype_file="$(gh api \
               -H "Accept: application/vnd.github+json" \
