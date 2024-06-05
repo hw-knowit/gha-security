@@ -1,4 +1,4 @@
-name: 'Entur/Security/Code Scanning'
+name: 'Entur/Security/Code Scan'
 
 on:
     workflow_call: 
@@ -84,14 +84,14 @@ jobs:
 #              with:
 #                category: "/language:${{ matrix.language }}"
     
-    validate_code_whitelist_file:
-      if: ${{ inputs.code_whitelist_file != '' }} || ${{ inputs.external_code_whitelist_file != '' }}
+    validate_code_whitelist:
+      if: ${{ inputs.code_whitelist != '' }} || ${{ inputs.external_code_whitelist != '' }}
       runs-on: ubuntu-latest
       permissions:
           contents: read
       steps:
 #        - name: "Get external code whitelist file"
-#          if: ${{ inputs.external_code_whitelist_file != '' }}
+#          if: ${{ inputs.external_code_whitelist != '' }}
 #          run: |
 #            gh api \
 #            --method GET \
@@ -101,22 +101,22 @@ jobs:
 #            cat response
 #          env:
 #            repository: ${{ inputs.external_code_whitelist_repository }}
-#            whitelist_file: ${{ inputs.external_code_whitelist_file }}
+#            whitelist_file: ${{ inputs.external_code_whitelist }}
 #            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         - name: "Checkout repository"
           uses: actions/checkout@v4
         - name: "Checkout external repository"
-          if: ${{ inputs.external_code_whitelist_file != '' }}
+          if: ${{ inputs.external_code_whitelist != '' }}
           uses: actions/checkout@v4
           with: 
             repository: entur/${{ inputs.external_code_whitelist_repository }}
             path: './external_repository'
-            sparse-checkout: ${{ inputs.external_code_whitelist_file }}
+            sparse-checkout: ${{ inputs.external_code_whitelist }}
             sparse-checkout-cone-mode: false
         - name: "Print external code whitelist file"
-          if: ${{ inputs.external_code_whitelist_file != '' }}
+          if: ${{ inputs.external_code_whitelist != '' }}
           run: |
-            cat external_repository/${{ inputs.external_code_whitelist_file }}
+            cat external_repository/${{ inputs.external_code_whitelist }}
             ls -la external_repository
         - name: "Create code whitelist schema file"
           run: |
@@ -139,20 +139,20 @@ jobs:
             EOF
             echo 'GHA_SECURITY_CODE_SCANNING_CODE_WHITELIST_SCHEMA=code_whitelist_schema.yaml' >> $GITHUB_ENV
         - name: "Validate code scanning whitelist file against schema"
-          if: ${{ inputs.code_whitelist_file != '' }}
+          if: ${{ inputs.code_whitelist != '' }}
           uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
           with:
             schema_path: ${{ env.GHA_SECURITY_CODE_SCANNING_CODE_WHITELIST_SCHEMA }}
-            document_path: ${{ inputs.code_whitelist_file }}
+            document_path: ${{ inputs.code_whitelist }}
         - name: "Validate external code scanning whitelist file against schema"
-          if: ${{ inputs.external_code_whitelist_file != '' }}
+          if: ${{ inputs.external_code_whitelist != '' }}
           uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
           with:
             schema_path: ${{ env.GHA_SECURITY_CODE_SCANNING_CODE_WHITELIST_SCHEMA }}
-            document_path: external_repository/${{ inputs.external_code_whitelist_file }}
+            document_path: external_repository/${{ inputs.external_code_whitelist }}
 
 #    whitelist_code_scanning_alerts:
-#      if: ${{ inputs.code_whitelist_file != '' }}
+#      if: ${{ inputs.code_whitelist != '' }}
 #      runs-on: ubuntu-latest
 #      needs: codeql-analysis
 #      permissions:
@@ -189,7 +189,7 @@ jobs:
 #            uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
 #            with:
 #              schema_path: ${{ env.GHA_SECURITY_CODE_SCANNING_CODE_WHITELIST_SCHEMA }}
-#              document_path: ${{ inputs.code_whitelist_file }}
+#              document_path: ${{ inputs.code_whitelist }}
 #          - name: "Get code scanning alerts"
 #            run: |
 #              gh api \
@@ -244,7 +244,7 @@ jobs:
 #                    print(response.text)
 #              "
 #            env: 
-#              GHA_SECURITY_CODE_SCANNING_WHITELIST_FILE: ${{ inputs.code_whitelist_file }}
+#              GHA_SECURITY_CODE_SCANNING_WHITELIST_FILE: ${{ inputs.code_whitelist }}
 #              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 #        
 #    check-for-critical-alerts:

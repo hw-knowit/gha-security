@@ -1,4 +1,4 @@
-name: 'Entur/Security/Image Scan'
+name: 'Entur/Security/Docker Scan'
 
 on:
     workflow_call:
