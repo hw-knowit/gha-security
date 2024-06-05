@@ -52,20 +52,20 @@ on:
 
 jobs:
   docker-lint:
-    uses: entur/gha-docker/.github/workflows/lint.yml@main
+    uses: entur/gha-docker/.github/workflows/lint.yml@v1
 
   docker-build:
-    uses: entur/gha-docker/.github/workflows/build.yml@main
+    uses: entur/gha-docker/.github/workflows/build.yml@v1
 
   docker-image-scan:
     needs: docker-build
-    uses: entur/gha-security/.github/workflows/docker-scan.yml@main
+    uses: entur/gha-security/.github/workflows/docker-scan.yml@v0.2.0
     with:
         image_artifact: ${{ needs.docker-build.outputs.image_artifact }}
 
   docker-push:
     needs: docker-scan
-    uses: entur/gha-docker/.github/workflows/push.yml@main
+    uses: entur/gha-docker/.github/workflows/push.yml@v1
     secrets: inherit
 ```
 
