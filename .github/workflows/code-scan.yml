@@ -164,7 +164,7 @@ jobs:
         - name: "Merge code scanning whitelist files"
           if: ${{ inputs.code-whitelist != '' }} && ${{ inputs.external-code-whitelist != '' }}
           run: |
-            yq m ${{ env.GHA_SECURITY_CODE_SCAN_CODE_WHITELIST }} ${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_CODE_WHITELIST }} 
+            yq m -i ${{ env.GHA_SECURITY_CODE_SCAN_CODE_WHITELIST }} ${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_CODE_WHITELIST }} 
             cat ${{ env.GHA_SECURITY_CODE_SCAN_CODE_WHITELIST }}
             cat ${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_CODE_WHITELIST }}
           env: 
