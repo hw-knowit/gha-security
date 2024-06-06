@@ -161,6 +161,15 @@ jobs:
           with:
             schema_path: ${{ env.GHA_SECURITY_CODE_SCAN_CODE_WHITELIST_SCHEMA }}
             document_path: external_repository/${{ inputs.external-code-whitelist }}
+        - name: "Merge code scanning whitelist files"
+          if: ${{ GHA_SECURITY_CODE_SCAN_CODE_WHITELIST != '' }} && ${{ GHA_SECURITY_CODE_SCAN_EXTERNAL_CODE_WHITELIST != '' }}
+          run: |
+            yq merge GHA_SECURITY_CODE_SCAN_CODE_WHITELIST GHA_SECURITY_CODE_SCAN_EXTERNAL_CODE_WHITELIST
+            cat GHA_SECURITY_CODE_SCAN_CODE_WHITELIST
+            cat GHA_SECURITY_CODE_SCAN_EXTERNAL_CODE_WHITELIST
+          env: 
+            GHA_SECURITY_CODE_SCAN_CODE_WHITELIST: ${{ inputs.code-whitelist }}
+            GHA_SECURITY_CODE_SCAN_EXTERNAL_CODE_WHITELIST: external_repository/${{ inputs.external-code-whitelist }}
 
 #    whitelist_code_scanning_alerts:
 #      if: ${{ inputs.code-whitelist != '' }}
