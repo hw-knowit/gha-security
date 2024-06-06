@@ -88,6 +88,10 @@ jobs:
       if: ${{ inputs.code-whitelist != '' }} || ${{ inputs.external-code-whitelist != '' }}
       runs-on: ubuntu-latest
       permissions:
+          # required to read and update code scanning alerts
+          security-events: write
+
+          # required to checkout the repository
           contents: read
       steps:
         - name: "Checkout local whitelist"
