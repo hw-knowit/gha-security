@@ -84,19 +84,19 @@ jobs:
 #              with:
 #                category: "/language:${{ matrix.language }}"
     
-    validate_code_whitelist:
+  whitelist_code_scanning_alerts:
       if: ${{ inputs.code-whitelist != '' }} || ${{ inputs.external-code-whitelist != '' }}
       runs-on: ubuntu-latest
       permissions:
           contents: read
       steps:
-        - name: "Checkout repository"
+        - name: "Checkout local whitelist"
           if: ${{ inputs.code-whitelist != '' }}
           uses: actions/checkout@v4
           with:
             sparse-checkout: ${{ inputs.code-whitelist }}
             sparse-checkout-cone-mode: false
-        - name: "Checkout external repository"
+        - name: "Checkout external whitelist"
           if: ${{ inputs.external-code-whitelist != '' }}
           uses: actions/checkout@v4
           with: 
@@ -149,7 +149,7 @@ jobs:
                         - test
             EOF
             echo 'GHA_SECURITY_CODE_SCAN_CODE_WHITELIST_SCHEMA=code_whitelist_schema.yaml' >> $GITHUB_ENV
-        - name: "Validate code scanning whitelist file against schema"
+        - name: "Validate local code scanning whitelist file against schema"
           if: ${{ inputs.code-whitelist != '' }}
           uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
           with:
@@ -161,24 +161,68 @@ jobs:
           with:
             schema_path: ${{ env.GHA_SECURITY_CODE_SCAN_CODE_WHITELIST_SCHEMA }}
             document_path: external_repository/${{ inputs.external-code-whitelist }}
-        - name: "Merge code scanning whitelist files"
-          if: ${{ inputs.code-whitelist != '' }} && ${{ inputs.external-code-whitelist != '' }}
+        - name: "Get code scanning alerts"
+          run: |
+            gh api \
+              --method GET \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              /repos/${{ github.repository }}/code-scanning/alerts \
+              -F state="open" -F ref="${{ github.ref }}" -F per_page="100" > code_scanning_alerts.json
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        - name: "Whitelist code scanning alerts"
           run: |
             python -c "
-            import yaml
 
-            with open('${{ env.GHA_SECURITY_CODE_SCAN_CODE_WHITELIST }}', 'r') as f, open('${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_CODE_WHITELIST }}', 'r') as g:
-                code_whitelist = yaml.load(f, Loader=yaml.SafeLoader)
-                external_code_whitelist = yaml.load(g, Loader=yaml.SafeLoader)
+            whitelist = {}
+            reason_mapping = {
+              'false_positive': 'false positive',
+              'wont_fix': 'won\'t fix',
+              'test': 'used in tests'
+            }
 
-              merged_whitelist = code_whitelist.update(external_code_whitelist)
+            remote_config = None
+            try: 
+              with open('${{ env.GHA_SECURITY_CODE_SCANNING_EXTERNAL_WHITELIST }}' as f:
+                remote_config = yaml.load(f, Loader=yaml.SafeLoader)
+              for element in remote_config['spec']['whitelist']:
+                whitelist[element['cwe']] = {
+                  'comment': element['comment'],
+                  'reason': reason_mapping[element['reason']]
+                }           
+            except e:
+              pass
+              
+            local_config = None
+            try: 
+              with open('${{ env.GHA_SECURITY_CODE_SCANNING_WHITELIST }}' as f:
+                local_config = yaml.load(f, Loader=yaml.SafeLoader)
+              for element in local_config['spec']['whitelist']:
+                whitelist[element['cwe']] = {
+                  'comment': element['comment'],
+                  'reason': reason_mapping[element['reason']]
+                }           
+            except e:
+              pass
 
-              print(merged_whitelist)
-                
+            with open('code_scanning_alerts.json') as f:
+              code_scanning_alerts = json.load(f)
+
+            for cwe, data in whitelist:
+              for alert in code_scanning_alerts:
+                if 'external/cwe/'+cwe in alert['rule']['tags']:
+                  url = 'https://api.github.com/repos/{}/code-scanning/alerts/{}'.format('${{ github.repository }}', alert['number'])
+                  data_to_send = {
+                    'state': 'dismissed',
+                    'dismissed_reason': data['reason'],
+                    'dismissed_comment': data['comment']
+                  }
+                  response = requests.patch(url, headers=headers, json=data_to_send)
             "
           env:
-            GHA_SECURITY_CODE_SCAN_CODE_WHITELIST: ${{ inputs.code-whitelist }}
-            GHA_SECURITY_CODE_SCAN_EXTERNAL_CODE_WHITELIST: external_repository/${{ inputs.external-code-whitelist }}
+            GHA_SECURITY_CODE_SCANNING_WHITELIST: ${{ inputs.code-whitelist }}
+            GHA_SECURITY_CODE_SCANNING_EXTERNAL_WHITELIST: external_repository/${{ inputs.external-code-whitelist }}
 
 
 #    whitelist_code_scanning_alerts:
