@@ -174,6 +174,15 @@ jobs:
         - name: "Whitelist code scanning alerts"
           run: |
             python -c "
+            import yaml
+            import json
+            import os
+
+            headers = {
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+            'Authorization': 'token {}'.format(os.getenv('GITHUB_TOKEN'))
+            }
 
             whitelist = {}
             reason_mapping = {
@@ -184,7 +193,7 @@ jobs:
 
             remote_config = None
             try: 
-              with open('${{ env.GHA_SECURITY_CODE_SCANNING_EXTERNAL_WHITELIST }}' as f:
+              with open(os.getenv('GHA_SECURITY_CODE_SCANNING_EXTERNAL_WHITELIST'), 'r') as f: 
                 remote_config = yaml.load(f, Loader=yaml.SafeLoader)
               for element in remote_config['spec']['whitelist']:
                 whitelist[element['cwe']] = {
@@ -196,7 +205,7 @@ jobs:
               
             local_config = None
             try: 
-              with open('${{ env.GHA_SECURITY_CODE_SCANNING_WHITELIST }}' as f:
+              with open(os.getenv('GHA_SECURITY_CODE_SCANNING_WHITELIST'), 'r') as f:
                 local_config = yaml.load(f, Loader=yaml.SafeLoader)
               for element in local_config['spec']['whitelist']:
                 whitelist[element['cwe']] = {
@@ -205,6 +214,8 @@ jobs:
                 }           
             except e:
               pass
+
+            print(whitelist)
 
             with open('code_scanning_alerts.json') as f:
               code_scanning_alerts = json.load(f)
@@ -223,6 +234,7 @@ jobs:
           env:
             GHA_SECURITY_CODE_SCANNING_WHITELIST: ${{ inputs.code-whitelist }}
             GHA_SECURITY_CODE_SCANNING_EXTERNAL_WHITELIST: external_repository/${{ inputs.external-code-whitelist }}
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 
 #    whitelist_code_scanning_alerts:
