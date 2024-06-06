@@ -164,12 +164,22 @@ jobs:
         - name: "Merge code scanning whitelist files"
           if: ${{ inputs.code-whitelist != '' }} && ${{ inputs.external-code-whitelist != '' }}
           run: |
-            yq m -i ${{ env.GHA_SECURITY_CODE_SCAN_CODE_WHITELIST }} ${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_CODE_WHITELIST }} 
-            cat ${{ env.GHA_SECURITY_CODE_SCAN_CODE_WHITELIST }}
-            cat ${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_CODE_WHITELIST }}
-          env: 
+            python -c "
+            import yaml
+
+            with open('${{ env.GHA_SECURITY_CODE_SCAN_CODE_WHITELIST }}', 'r') as f, open('${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_CODE_WHITELIST }}', 'r') as g:
+                code_whitelist = yaml.load(f, Loader=yaml.SafeLoader)
+                external_code_whitelist = yaml.load(g, Loader=yaml.SafeLoader)
+
+              merged_whitelist = code_whitelist.update(external_code_whitelist)
+
+              print(merged_whitelist)
+                
+            "
+          env:
             GHA_SECURITY_CODE_SCAN_CODE_WHITELIST: ${{ inputs.code-whitelist }}
             GHA_SECURITY_CODE_SCAN_EXTERNAL_CODE_WHITELIST: external_repository/${{ inputs.external-code-whitelist }}
+
 
 #    whitelist_code_scanning_alerts:
 #      if: ${{ inputs.code-whitelist != '' }}
