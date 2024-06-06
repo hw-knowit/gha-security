@@ -162,7 +162,7 @@ jobs:
             schema_path: ${{ env.GHA_SECURITY_CODE_SCAN_CODE_WHITELIST_SCHEMA }}
             document_path: external_repository/${{ inputs.external-code-whitelist }}
         - name: "Merge code scanning whitelist files"
-          if: ${{ GHA_SECURITY_CODE_SCAN_CODE_WHITELIST != '' }} && ${{ GHA_SECURITY_CODE_SCAN_EXTERNAL_CODE_WHITELIST != '' }}
+          if: ${{ inputs.code-whitelist != '' }} && ${{ inputs.external-code-whitelist != '' }}
           run: |
             yq merge GHA_SECURITY_CODE_SCAN_CODE_WHITELIST GHA_SECURITY_CODE_SCAN_EXTERNAL_CODE_WHITELIST
             cat GHA_SECURITY_CODE_SCAN_CODE_WHITELIST
