@@ -4,11 +4,11 @@ on:
     workflow_call: 
       inputs:
         local-whitelist:
-          description: 'Whitelisting file for code scanning alerts, located in the same repository as the "caller" workflow. Must be placed in the root of the repository' 
+          description: 'Whitelisting file for code scanning alerts, located in the same repository as the "caller" workflow. If not placed in the root of the repository, the path must be specified' 
           type: string
           required: false
         external-whitelist:
-          description: 'Whitelisting file for code scanning alerts, located in a different repository than the "caller" workflow. Must be placed in the root of the repository'
+          description: 'Whitelisting file for code scanning alerts, located in a different repository than the "caller" workflow. If not placed in the root of the repository, the path must be specified'
           type: string
           required: false
         external-repository:
@@ -17,12 +17,14 @@ on:
           required: false
       secrets: 
         external-repository-token:
-          description: 'Token for reading contents from the external repository. Must have read access to the repository'
+          description: 'Must be included if the external repository is private or internal'
           required: false
 
 env: 
     GHA_SECURITY_CODE_SCAN_LOCAL_WHITELIST: ${{ inputs.local-whitelist }}
-    
+    GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST: ${{ inputs.external-whitelist }}
+    GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY: ${{ inputs.external-repository }}
+    GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY_TOKEN: ${{ secrets.external-repository-token }}    
 
 jobs:
 #  get-repository-languages:
@@ -94,7 +96,7 @@ jobs:
 #              category: "/language:${{ matrix.language }}"
   
   whitelist_code_scan_alerts:
-      if: ${{ env.GHA_SECURITY_CODE_SCAN_LOCAL_WHITELIST != '' }}
+      if: ${{ inputs.local-whitelist != '' || (inputs.external-whitelist != '' && inputs.external-repository != '') }}
       runs-on: ubuntu-latest
       permissions:
           # required to read and update code scanning alerts
@@ -104,25 +106,32 @@ jobs:
           contents: read
       steps:
         - name: "Checkout local whitelist"
-          env: 
-            GHA_SECURITY_CODE_SCANNING_WHITELIST: ${{ inputs.local-whitelist }}
-          if: ${{ env.GHA_SECURITY_CODE_SCANNING_WHITELIST != '' }}
+          id: checkout-local-whitelist
+          if: ${{ env.GHA_SECURITY_CODE_SCAN_LOCAL_WHITELIST != '' }}
           uses: actions/checkout@v4
           with:
-            sparse-checkout: ${{ inputs.local-whitelist }}
+            sparse-checkout: ${{ env.GHA_SECURITY_CODE_SCAN_LOCAL_WHITELIST }}
             sparse-checkout-cone-mode: false
         - name: "Checkout external whitelist (from private/internal repository)"
-          env: 
-            GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY: ${{ inputs.external-repository }}
-            GHA_SECURITY_CODE_SCAN_EXTERNAL_CODE_WHITELIST: ${{ inputs.external-whitelist }}
-            GHA_SECURITY_CODE_SCAN_EXTERNAL-REPOSITORY-TOKEN: ${{ secrets.external-repository-token }}
-          if: ${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY != ''}} && ${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_CODE_WHITELIST != ''}} && ${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL-REPOSITORY-TOKEN != ''}}
+          id: checkout-external-whitelist-private
+          if: ${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST != '' && env.GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY != '' && env.GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY_TOKEN != '' }}
           uses: actions/checkout@v4
           with: 
-            repository: entur/${{ inputs.external-repository }}
+            repository: entur/${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY}}
             path: './external_repository'
-            sparse-checkout: ${{ inputs.external-whitelist }}
+            sparse-checkout: ${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST }}
             sparse-checkout-cone-mode: false
+            token: ${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY_TOKEN }}
+        - name: "Checkout external whitelist (from public repository)"
+          id: checkout-external-whitelist-public
+          if: ${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST != '' && env.GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY != '' && env.GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY_TOKEN == '' }}
+          uses: actions/checkout@v4
+          with: 
+            repository: entur/${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY }}
+            path: './external_repository'
+            sparse-checkout: ${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST }}
+            sparse-checkout-cone-mode: false
+            token: ${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY_TOKEN }}
         - name: "Create code whitelist schema file"
           run: |
             cat > code_whitelist_schema.yaml << EOF
@@ -167,20 +176,20 @@ jobs:
                         - wont_fix
                         - test
             EOF
-            echo 'GHA_SECURITY_CODE_SCAN_CODE_WHITELIST_SCHEMA=code_whitelist_schema.yaml' >> $GITHUB_ENV
-        - name: "Validate local code scanning whitelist file against schema"
-          if: ${{ inputs.local-whitelist != '' }}
+            echo 'GHA_SECURITY_CODE_SCAN_WHITELIST_SCHEMA=code_whitelist_schema.yaml' >> $GITHUB_ENV
+        - name: "Validate local whitelist file against schema"
+          if: steps.checkout-local-whitelist.outcome == 'success'
           uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
           with:
-            schema_path: ${{ env.GHA_SECURITY_CODE_SCAN_CODE_WHITELIST_SCHEMA }}
-            document_path: ${{ inputs.local-whitelist }}
-        - name: "Validate external code scanning whitelist file against schema"
-          if: ${{ inputs.external-whitelist != '' }}
+            schema_path: ${{ env.GHA_SECURITY_CODE_SCAN_WHITELIST_SCHEMA }}
+            document_path: ${{ env.GHA_SECURITY_CODE_SCAN_LOCAL_WHITELIST }}
+        - name: "Validate external whitelist file against schema"
+          if: steps.checkout-external-whitelist-private.outcome == 'success' || steps.checkout-external-whitelist-public.outcome == 'success'
           uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
           with:
-            schema_path: ${{ env.GHA_SECURITY_CODE_SCAN_CODE_WHITELIST_SCHEMA }}
-            document_path: external_repository/${{ inputs.external-whitelist }}
-        - name: "Get code scanning alerts"
+            schema_path: ${{ env.GHA_SECURITY_CODE_SCAN_WHITELIST_SCHEMA }}
+            document_path: external_repository/${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST }}
+        - name: "Get code scan alerts"
           run: |
             gh api \
               --method GET \
@@ -190,7 +199,7 @@ jobs:
               -F state="open" -F ref="${{ github.ref }}" -F per_page="100" > code_scan_alerts.json
           env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        - name: "Whitelist code scanning alerts"
+        - name: "Whitelist code scan alerts"
           run: |
             python -c "
             import yaml
@@ -211,8 +220,8 @@ jobs:
             }
 
             remote_config = None
-            try: 
-              with open(os.getenv('GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST'), 'r') as f: 
+            try:
+              with open('external_repository/'+os.getenv('GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST'), 'r') as f: 
                 remote_config = yaml.load(f, Loader=yaml.SafeLoader)
               for element in remote_config['spec']['whitelist']:
                 whitelist[element['cwe']] = {
@@ -224,7 +233,7 @@ jobs:
               
             local_config = None
             try: 
-              with open(os.getenv('GHA_SECURITY_CODE_SCANNING_WHITELIST'), 'r') as f:
+              with open(os.getenv('GHA_SECURITY_CODE_SCAN_LOCAL_WHITELIST'), 'r') as f:
                 local_config = yaml.load(f, Loader=yaml.SafeLoader)
               for element in local_config['spec']['whitelist']:
                 whitelist[element['cwe']] = {
@@ -233,8 +242,6 @@ jobs:
                 }           
             except e:
               pass
-
-            print(whitelist)
 
             with open('code_scan_alerts.json') as f:
               code_scanning_alerts = json.load(f)
@@ -251,8 +258,6 @@ jobs:
                   response = requests.patch(url, headers=headers, json=data_to_send)
             "
           env:
-            GHA_SECURITY_CODE_SCANNING_WHITELIST: ${{ inputs.local-whitelist }}
-            GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST: external_repository/${{ inputs.external-whitelist }}
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
 #  check-for-critical-alerts:
