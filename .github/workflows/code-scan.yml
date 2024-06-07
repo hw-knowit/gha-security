@@ -96,6 +96,7 @@ jobs:
               category: "/language:${{ matrix.language }}"
   
   whitelist_code_scan_alerts:
+      needs: codeql-analysis
       if: ${{ inputs.local-whitelist != '' || (inputs.external-whitelist != '' && inputs.external-repository != '') }}
       runs-on: ubuntu-latest
       permissions:
