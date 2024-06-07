@@ -112,7 +112,7 @@ jobs:
           with:
             sparse-checkout: ${{ env.GHA_SECURITY_CODE_SCAN_LOCAL_WHITELIST }}
             sparse-checkout-cone-mode: false
-        - name: "Checkout external whitelist (from private/internal repository)"
+        - name: "Checkout external whitelist (from private repository)"
           id: checkout-external-whitelist-private
           if: ${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST != '' && env.GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY != '' && env.GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY_TOKEN != '' }}
           uses: actions/checkout@v4
@@ -131,7 +131,6 @@ jobs:
             path: './external_repository'
             sparse-checkout: ${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST }}
             sparse-checkout-cone-mode: false
-            token: ${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY_TOKEN }}
         - name: "Create code whitelist schema file"
           run: |
             cat > code_whitelist_schema.yaml << EOF
