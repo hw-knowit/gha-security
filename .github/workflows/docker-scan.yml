@@ -166,15 +166,15 @@ jobs:
             with open(env_file, 'a') as f:
                 f.write('GHA_SECURITY_DOCKER_SCAN_WHITELIST_BASE64={}'.format(grype_whitelisting_base64))
             "
-        - name:  "Check if grype.yaml exists"
+        - name:  "Check if .grype.yaml exists"
           if: steps.convert-whitelist-to-base64.outcome == 'success'
           run: |
-            if test -f grype.yaml; then
+            if test -f .grype.yaml; then
               echo 'GHA_SECURITY_DOCKER_SCAN_GRYPE_YAML_EXISTS=true' >> $GITHUB_ENV
             else
               echo 'GHA_SECURITY_DOCKER_SCAN_GRYPE_YAML_EXISTS=false' >> $GITHUB_ENV
             fi
-        - name: "Create grype.yaml"
+        - name: "Create .grype.yaml"
           if: env.GHA_SECURITY_DOCKER_SCAN_GRYPE_YAML_EXISTS == 'false'
           run: |
             gh api \
@@ -182,10 +182,10 @@ jobs:
               -H "Accept: application/vnd.github+json" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
               /repos/${{ github.repository }}/contents/.grype.yaml \
-              -f "message=Create grype.yaml" -f "content=${{ env.GHA_SECURITY_DOCKER_SCAN_WHITELIST_BASE64 }}"
+              -f "message=Create .grype.yaml" -f "content=${{ env.GHA_SECURITY_DOCKER_SCAN_WHITELIST_BASE64 }}"
           env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        - name: "Update grype.yaml"
+        - name: "Update .grype.yaml"
           if: env.GHA_SECURITY_DOCKER_SCAN_GRYPE_YAML_EXISTS == 'true'
           run: |
             grype_file="$(gh api \
@@ -197,8 +197,8 @@ jobs:
               --method PUT \
               -H "Accept: application/vnd.github+json" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
-              /repos/${{ github.repository }}/contents/grype.yaml \
-              -f "message=Update grype.yaml" -f "content=${{ env.GHA_SECURITY_DOCKER_SCAN_WHITELIST_BASE64 }}" \
+              /repos/${{ github.repository }}/contents/.grype.yaml \
+              -f "message=Update .grype.yaml" -f "content=${{ env.GHA_SECURITY_DOCKER_SCAN_WHITELIST_BASE64 }}" \
               -f "sha=$grype_file_sha"
           env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
