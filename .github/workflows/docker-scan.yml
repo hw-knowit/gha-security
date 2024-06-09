@@ -38,7 +38,8 @@ jobs:
             contents: write # required for checking out the repository and creating files
             issues: write # required for creating issues, and/or adding issue comments
             pull-requests: write # required for creating comments on pull requests
-            security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
+            security-events: write # required for uploading SARIF file to GitHub 
+            actions: read #required for uploading SARIF file to GitHub (workflows in private repositories)
         steps:
         - name: "Checkout repository"
           uses: actions/checkout@v4
