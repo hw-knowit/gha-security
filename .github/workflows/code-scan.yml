@@ -228,7 +228,7 @@ jobs:
                   'comment': element['comment'],
                   'reason': reason_mapping[element['reason']]
                 }           
-            except e:
+            except IOError:
               pass
               
             local_config = None
@@ -240,7 +240,7 @@ jobs:
                   'comment': element['comment'],
                   'reason': reason_mapping[element['reason']]
                 }           
-            except e:
+            except IOError:
               pass
 
             with open('code_scan_alerts.json') as f:
