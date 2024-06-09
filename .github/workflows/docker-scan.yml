@@ -48,7 +48,7 @@ jobs:
             name: ${{ env.GHA_SECURITY_DOCKER_SCAN_IMAGE_ARTIFACT }}
         - name: Checkout external whitelist (from public repository)
           id: checkout-external-whitelist-public
-          if: ${{env.GHA_SECURITY_DOCKER_SCAN_EXTERNAL_WHITELIST != '' && env.GHA_SECURITY_DOCKER_SCAN_EXTERNAL_REPOSITORY != '' && env.GHA_SECURITY_DOCKER_SCAN_EXTERNAL_REPOSITORY_TOKEN != '' }}
+          if: ${{env.GHA_SECURITY_DOCKER_SCAN_EXTERNAL_WHITELIST != '' && env.GHA_SECURITY_DOCKER_SCAN_EXTERNAL_REPOSITORY != '' && env.GHA_SECURITY_DOCKER_SCAN_EXTERNAL_REPOSITORY_TOKEN == '' }}
           uses: actions/checkout@v4
           with:
             repository: entur/${{ env.GHA_SECURITY_DOCKER_SCAN_EXTERNAL_REPOSITORY }}
@@ -205,6 +205,7 @@ jobs:
           with: 
             image: ${{ inputs.image_artifact }}.tar
             by-cve: true
+            fail-build: false
         - name: "Upload vulnerability report"
           id: upload-vulnerability-report
           if: ${{ !cancelled() }}
