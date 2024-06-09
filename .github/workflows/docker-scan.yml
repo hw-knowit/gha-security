@@ -135,7 +135,7 @@ jobs:
 
             remote_config = None
             try:
-              with open(os.getenv('GHA_SECURITY_DOCKER_SCAN_EXTERNAL_WHITELIST'), 'r') as f:
+              with open('external_repository/'+os.getenv('GHA_SECURITY_DOCKER_SCAN_EXTERNAL_WHITELIST'), 'r') as f:
                 remote_config = yaml.load(f, Loader=yaml.SafeLoader)
               for element in remote_config['spec']['whitelist']:
                 whitelist[element['cve']] = {
