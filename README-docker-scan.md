@@ -64,31 +64,41 @@ jobs:
         image_artifact: ${{ needs.docker-build.outputs.image_artifact }}
 
   docker-push:
-    needs: docker-scan
     uses: entur/gha-docker/.github/workflows/push.yml@v1
     secrets: inherit
 ```
 
 
 ### White-listing vulnerabilities
-The reusable workflow uses the [Grype scanner](https://github.com/marketplace/actions/anchore-container-scan) to scan the Docker image for vulnerabilities. The scanner will fail if any critical vulnerabilities are found. If you believe that a found vulnerability is a false positive or otherwise not relevant, you can create a whitelist file (YAML-file) that dismisses all alerts that matches a vulnerability ID.
+The reusable workflow uses the [Grype scanner](https://github.com/marketplace/actions/anchore-container-scan) to scan the Docker image for vulnerabilities. Any discovered vulnerabilities will be published to the Security tab of the repository, under the Code Scanning Alerts section. If you believe that a found vulnerability is a false positive or otherwise not relevant, you can create a whitelist file (YAML-file) that dismisses all alerts that matches a vulnerability ID.
+
+NB! If the scan is performed on a pull request, remember to filter by pull request number and not the branch name. 
 
 The whitelist file should be placed in the root of the repository, and the path to the file should be provided as an input to the workflow. The file must have the following format:
 
 ```yaml
-Image whitelisting:
-- cve: {cve-id}
-  comment: {comment explaining why the vulnerability is dismissed}
-  reason: {reason for dismissing the vulnerability}
+apiVersion: entur.io/v1alpha1
+kind: DockerScanConfig
+metadata:
+  name: {project-name-config}
+spec:
+  whitelist:
+  - cve: {cve-id}
+    comment: {comment explaining why the vulnerability is dismissed}
+    reason: {reason for dismissing the vulnerability}
 ```
-
-The `cve` field should be the CVE-ID of the vulnerability you want to dismiss, the `comment` field should be a comment explaining why the vulnerability is dismissed, and the `reason` field should be a short description on why the vulnerability is dismissed.
+The metadata field should be the name of the project, the `cve` field should be the CVE-ID of the vulnerability you want to dismiss, the `comment` field should be a comment explaining why the vulnerability is dismissed, and the `reason` field should be a short description on why the vulnerability is dismissed.
 
 ### Example
 
 ```yaml
-Image whitelisting:
-- cve: "CVE-2021-1234"
-  comment: "This alert is a false positive"
-  reason: "false_positive"
+apiVersion: entur.io/v1alpha1
+kind: DockerScanConfig
+metadata:
+  name: my-project-config
+spec:
+  whitelist:
+  - cve: "CVE-2021-1234"
+    comment: "This alert is a false positive"
+    reason: "false_positive"
 ```

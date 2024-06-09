@@ -157,7 +157,9 @@ jobs:
             except IOError:
               pass
 
-            grype_whitelisting = {'ignore': [{'vulnerability': dismissal['cve']} for dismissal in whitelist]}
+            print(whitelist)
+
+            grype_whitelisting = {'ignore': [{'vulnerability': vulnerability for vulnerability in whitelist]}
             grype_whitelisting_yaml = yaml.dump(grype_whitelisting)
             grype_whitelisting_base64 = base64.b64encode(grype_whitelisting_yaml.encode()).decode()
             env_file = os.getenv('GITHUB_ENV')
@@ -207,6 +209,7 @@ jobs:
             image: ${{ inputs.image_artifact }}.tar
             by-cve: true
             fail-build: false
+            severity-cutoff: critical
         - name: "Upload vulnerability report"
           id: upload-vulnerability-report
           if: ${{ !cancelled() }}
