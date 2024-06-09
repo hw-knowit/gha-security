@@ -48,11 +48,12 @@ jobs:
             name: ${{ env.GHA_SECURITY_DOCKER_SCAN_IMAGE_ARTIFACT }}
         - name: Checkout external whitelist (from public repository)
           id: checkout-external-whitelist-public
-          if: ${{env.GHA_SECURITY_DOCKER_SCAN_EXTERNAL_WHITELIST != '' && env.GHA_SECURITY_DOCKER_SCAN_EXTERNAL_REPOSITORY != '' && env.GHA_SECURITY_DOCKER_SCAN_EXTERNAL_REPOSITORY_TOKEN == ''}}
+          if: ${{env.GHA_SECURITY_DOCKER_SCAN_EXTERNAL_WHITELIST != '' && env.GHA_SECURITY_DOCKER_SCAN_EXTERNAL_REPOSITORY != '' }}
           uses: actions/checkout@v4
           with:
             repository: ${{ env.GHA_SECURITY_DOCKER_SCAN_EXTERNAL_REPOSITORY }}
             path: './external_repository'
+            token: ${{ env.GHA_SECURITY_DOCKER_SCAN_EXTERNAL_REPOSITORY_TOKEN }}
             sparse-checkout: ${{ env.GHA_SECURITY_DOCKER_SCAN_EXTERNAL_WHITELIST }}
             sparse-checkout-cone-mode: false
         - name: Checkout external whitelist (from private repository)
