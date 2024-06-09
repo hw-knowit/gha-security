@@ -181,7 +181,7 @@ jobs:
               --method PUT \
               -H "Accept: application/vnd.github+json" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
-              /repos/${{ github.repository }}/contents/grype.yaml \
+              /repos/${{ github.repository }}/contents/.grype.yaml \
               -f "message=Create grype.yaml" -f "content=${{ env.GHA_SECURITY_DOCKER_SCAN_WHITELIST_BASE64 }}"
           env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -191,7 +191,7 @@ jobs:
             grype_file="$(gh api \
               -H "Accept: application/vnd.github+json" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
-              /repos/${{ github.repository }}/contents/grype.yaml)"
+              /repos/${{ github.repository }}/contents/.grype.yaml)"
             grype_file_sha=$(echo "$grype_file" | jq -r '.sha')
             gh api \
               --method PUT \
