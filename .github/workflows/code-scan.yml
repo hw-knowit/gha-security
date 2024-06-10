@@ -109,6 +109,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
+      - name: "Print whitelist file"
+        if: env.GHA_SECURITY_CODE_SCAN_WHITELIST != ''
+        run: |
+          echo $GHA_SECURITY_CODE_SCAN_WHITELIST
+      - name: "print whitelist file"
+        if: env.GHA_SECURITY_CODE_SCAN_WHITELIST == ''
+        run: |
+          echo 'No whitelist file found'
 #        - name: "Checkout local whitelist"
 #          id: checkout-local-whitelist
 #          uses: actions/checkout@v4
