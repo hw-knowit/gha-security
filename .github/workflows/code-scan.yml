@@ -87,6 +87,7 @@ jobs:
           python -c "
           import os
           import requests
+          import base64
 
           token = os.getenv('GITHUB_TOKEN')
           repository = os.getenv('repository')
