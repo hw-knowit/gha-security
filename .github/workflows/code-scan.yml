@@ -109,12 +109,12 @@ jobs:
           if response.status_code == 200:
             content = base64.b64decode(response.json()['content']).decode('utf-8')
             with open('whitelist.yml', 'w') as f:
-              f.write(content)
+              f.write(content)      
 
-            with open(env_file, 'a') as f:
-              print('writing to env file')
-              f.write('GHA_SECURITY_CODE_SCAN_WHITELIST=true')
-            print('GHA_SECURITY_CODE_SCAN_WHITELIST')
+            with open(env_file, 'a') as g:
+              g.write('GHA_SECURITY_CODE_SCAN_WHITELIST=true')
+          
+            print('Whitelist file found')
             print(os.getenv('GHA_SECURITY_CODE_SCAN_WHITELIST'))
 
             with open('whitelist.yml', 'r') as f:
