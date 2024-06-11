@@ -124,6 +124,7 @@ jobs:
           python -c "
           import yaml
           from cerberus import Validator
+          import sys
 
           schema = {
               'apiVersion': {'type': 'string', 'required': True},
@@ -165,7 +166,7 @@ jobs:
           else:
               print('The file is invalid. Here are the errors:')
               print(v.errors)
-          
+              sys.exit(1)
           "
           
    
