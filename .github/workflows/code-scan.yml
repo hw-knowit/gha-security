@@ -105,14 +105,15 @@ jobs:
             'Authorization': f'token {token}'
           }
           response = requests.get(f'https://api.github.com/repos/{repository}/contents/code_scan_config.yml', headers=headers)
-          print(f'Code scan config response: {response.status_code}')
-          if(response.status_code == 200):
+          print(f'Code scan config response: {response.status_code=}')
+          if response.status_code == 200:
             content = base64.b64decode(response.json()['content']).decode('utf-8')
             with open('whitelist.yml', 'w') as f:
               f.write(content)
 
             with open(env_file, 'a') as f:
-              f.write('GHA_SECURITY_CODE_SCAN_WHITELIST=whitelist.yml')
+              f.write('GHA_SECURITY_CODE_SCAN_WHITELIST=true')
+            print(os.getenv('GHA_SECURITY_CODE_SCAN_WHITELIST')
 
             with open('whitelist.yml', 'r') as f:
               data = yaml.load(f, Loader=yaml.SafeLoader)
@@ -131,7 +132,8 @@ jobs:
                   f.write(content)
 
                 with open(env_file, 'a') as f:
-                  f.write('GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY=external_repository')
+                  f.write('GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY=true')
+                print(os.getenv('GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY')
               else:
                 print(response.status_code)
                 print('No external whitelist file found')
