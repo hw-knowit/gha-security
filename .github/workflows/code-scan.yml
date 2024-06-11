@@ -104,8 +104,6 @@ jobs:
             content = base64.b64decode(response.json()['content']).decode('utf-8')
             with open('whitelist.yml', 'w') as f:
               f.write(content)
-
-            with open('whitelist.yml', 'r') as f:
               data = yaml.load(f, Loader=yaml.SafeLoader)
               print(data)
 
@@ -120,7 +118,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
-      - name: "Get external "
       - name: Install dependencies
         if: env.GHA_SECURITY_CODE_SCAN_WHITELIST == 'whitelist.yml'
         run: |
