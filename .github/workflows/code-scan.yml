@@ -109,7 +109,6 @@ jobs:
               f.write('GHA_SECURITY_CODE_SCAN_WHITELIST=whitelist.yml')
           else:
             print('No whitelist file found')
-            os.environ['GHA_SECURITY_CODE_SCAN_WHITELIST'] = ''            
           "   
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -125,7 +124,6 @@ jobs:
           python -c "
           import yaml
           from cerberus import Validator
-
 
           schema = {
               'apiVersion': {'type': 'string', 'required': True},
@@ -158,7 +156,7 @@ jobs:
               }
           }
 
-          with open('/home/isabel/whitelist.yml', 'r') as f:
+          with open('whitelist.yml', 'r') as f:
               data = yaml.safe_load(f)
           
           v = Validator(schema)
@@ -169,6 +167,7 @@ jobs:
               print(v.errors)
           
           "
+          
    
             
 #        - name: "Checkout local whitelist"
