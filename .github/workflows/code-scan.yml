@@ -148,12 +148,12 @@ jobs:
           repository: ${{ github.repository }}
           GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY_TOKEN: ${{ secrets.external_repository_token }}
       - name: Install dependencies
-        if: env.GHA_SECURITY_CODE_SCAN_WHITELIST == 'whitelist.yml'
+        if: env.GHA_SECURITY_CODE_SCAN_WHITELIST == 'true'
         run: |
           pip install cerberus
         shell: bash
       - name: "Validate whitelist file"
-        if: env.GHA_SECURITY_CODE_SCAN_WHITELIST == 'whitelist.yml'
+        if: env.GHA_SECURITY_CODE_SCAN_WHITELIST == 'true'
         run: |
           python -c "
           import yaml
