@@ -120,8 +120,8 @@ jobs:
           python -c "
           import yaml
           from cerberus import Validator
-                  
-                  
+
+
           schema = {
               'apiVersion': {'type': 'string', 'required': True},
               'kind': {'type': 'string', 'required': True, 'allowed': ['CodeScanConfig']},
@@ -152,15 +152,15 @@ jobs:
                   }
               }
           }
-            
+
           with open('/home/isabel/whitelist.yml', 'r') as f:
               data = yaml.safe_load(f)
           
           v = Validator(schema)
           if v.validate(data):
-              print("The file is valid.")
+              print('The file is valid.'')
           else:
-              print("The file is invalid. Here are the errors:")
+              print('The file is invalid. Here are the errors:'')
               print(v.errors)
           
           "
