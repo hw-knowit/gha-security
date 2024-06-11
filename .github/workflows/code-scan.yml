@@ -99,7 +99,7 @@ jobs:
           repository = os.getenv('repository')
           env_file = os.getenv('GITHUB_ENV')
 
-          if external_token is None:
+          if external_token == '':
             external_token = token
           
 
