@@ -158,9 +158,9 @@ jobs:
           
           v = Validator(schema)
           if v.validate(data):
-              print('The file is valid.'')
+              print('The file is valid.')
           else:
-              print('The file is invalid. Here are the errors:'')
+              print('The file is invalid. Here are the errors:')
               print(v.errors)
           
           "
