@@ -107,7 +107,7 @@ jobs:
           response = requests.get(f'https://api.github.com/repos/{repository}/contents/code_scan_config.yml', headers=headers)
           if response.status_code == 200:
             with open(env_file, 'a') as f:
-              f.write('GHA_SECURITY_CODE_SCAN_WHITELIST=true')
+              f.write('GHA_SECURITY_CODE_SCAN_WHITELIST=true\n')
 
             content = base64.b64decode(response.json()['content']).decode('utf-8')
             with open('whitelist.yml', 'w') as f:
@@ -126,7 +126,7 @@ jobs:
               response = requests.get(f'https://api.github.com/repos/entur/{external_repository}/contents/code_scan_config.yml', headers=headers)
               if response.status_code == 200:
                 with open(env_file, 'a') as f:
-                  f.write('GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST=true')
+                  f.write('GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST=true\n')
 
                 content = base64.b64decode(response.json()['content']).decode('utf-8')
                 with open('external_whitelist.yml', 'a') as f:
