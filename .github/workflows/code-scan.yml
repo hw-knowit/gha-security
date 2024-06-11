@@ -111,8 +111,7 @@ jobs:
             with open('whitelist.yml', 'w') as f:
               f.write(content)      
 
-            with open(env_file, 'a') as g:
-              g.write('GHA_SECURITY_CODE_SCAN_WHITELIST=true')
+            os.environ['GHA_SECURITY_CODE_SCAN_WHITELIST'] = 'true'
           
             print('Whitelist file found')
             print(os.getenv('GHA_SECURITY_CODE_SCAN_WHITELIST'))
