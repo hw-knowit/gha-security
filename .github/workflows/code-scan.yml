@@ -114,69 +114,57 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
-      - name: "Print whitelist file"
+      - name: "Validate whitelist file"
         if: env.GHA_SECURITY_CODE_SCAN_WHITELIST == 'whitelist.yml'
         run: |
-          cat whitelist.yml
-      - name: "Create whitelist schema file"
-        if: env.GHA_SECURITY_CODE_SCAN_WHITELIST == 'whitelist.yml'
-        run: |
-          cat > whitelist_schema.yml << EOF
-          apiVersion: 
-            required: true
-            type: string
-            allowed:
-              - entur.io/v1alpha1
-          kind:
-            required: true
-            type: string
-            allowed:
-              - CodeScanConfig
-          metadata:
-            required: true
-            type: dict
-            schema:
-              name:
-                required: true
-                type: string
-          spec:
-            type: dict
-            anyof:
-              - required: true
-                schema:
-                  inherit:
-                    required: true
-                    type: string
-              - required: true
-                schema:
-                  whitelist:
-                    required: true
-                    type: list
-                    schema:
-                      type: dict
-                      schema:
-                        cwe:
-                          required: true
-                          type: string
-                        comment:
-                          required: true
-                          type: string
-                        reason:
-                          required: true
-                          type: string
-                          allowed:
-                            - false_positive
-                            - wont_fix
-                            - test
-          EOF
-          echo 'GHA_SECURITY_CODE_SCAN_WHITELIST_SCHEMA=whitelist_schema.yml' >> $GITHUB_ENV
-      - name: "Validate whitelist file against schema"
-        if: env.GHA_SECURITY_CODE_SCAN_WHITELIST == 'whitelist.yml'
-        uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
-        with:
-          schema_path: ${{ env.GHA_SECURITY_CODE_SCAN_WHITELIST_SCHEMA }}
-          document_path: ${{ env.GHA_SECURITY_CODE_SCAN_WHITELIST }}
-        
+          python -c "
+          import yaml
+          from cerberus import Validator
+                  
+                  
+          schema = {
+              'apiVersion': {'type': 'string', 'required': True},
+              'kind': {'type': 'string', 'required': True, 'allowed': ['CodeScanConfig']},
+              'metadata': {
+                  'type': 'dict', 
+                  'required': True,
+                  'schema': {
+                      'name': {'type': 'string', 'required': True}
+                  }
+              },
+              'spec': {
+                  'type': 'dict',
+                  'required': True,
+                  'schema': {
+                      'inherit': {'type': 'string', 'nullable': True},
+                      'whitelist': {
+                          'type': 'list',
+                          'nullable': True,
+                          'schema': {
+                              'type': 'dict',
+                              'schema': {
+                                  'cwe': {'type': 'string', 'required': True},
+                                  'comment': {'type': 'string', 'required': True},
+                                  'reason': {'type': 'string', 'required': True}
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+            
+          with open('/home/isabel/whitelist.yml', 'r') as f:
+              data = yaml.safe_load(f)
+          
+          v = Validator(schema)
+          if v.validate(data):
+              print("The file is valid.")
+          else:
+              print("The file is invalid. Here are the errors:")
+              print(v.errors)
+          
+          "
+   
             
 #        - name: "Checkout local whitelist"
 #          id: checkout-local-whitelist
