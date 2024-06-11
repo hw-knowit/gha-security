@@ -114,6 +114,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
+      - name: Install dependencies
+        if: env.GHA_SECURITY_CODE_SCAN_WHITELIST == 'whitelist.yml'
+        run: |
+          pip install cerberus
+        shell: bash
       - name: "Validate whitelist file"
         if: env.GHA_SECURITY_CODE_SCAN_WHITELIST == 'whitelist.yml'
         run: |
