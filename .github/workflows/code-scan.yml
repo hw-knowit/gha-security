@@ -146,6 +146,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
           GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY_TOKEN: ${{ secrets.external_repository_token }}
+      - name: "Print variables"
+        run: |
+          echo env.GHA_SECURITY_CODE_SCAN_WHITELIST
+          echo env.GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY
       - name: Install dependencies
         if: env.GHA_SECURITY_CODE_SCAN_WHITELIST == 'true'
         run: |
