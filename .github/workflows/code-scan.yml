@@ -96,6 +96,7 @@ jobs:
 
           token = os.getenv('GITHUB_TOKEN')
           external_token = os.getenv('GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY_TOKEN')
+          external_repository = os.getenv('GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY')
           print(f'external_repository: {external_repository}')
           repository = os.getenv('repository')
           env_file = os.getenv('GITHUB_ENV')
