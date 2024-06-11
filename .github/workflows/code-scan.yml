@@ -113,7 +113,7 @@ jobs:
 
             with open(env_file, 'a') as f:
               f.write('GHA_SECURITY_CODE_SCAN_WHITELIST=true')
-            print(os.getenv('GHA_SECURITY_CODE_SCAN_WHITELIST')
+            print(os.getenv('GHA_SECURITY_CODE_SCAN_WHITELIST'))
 
             with open('whitelist.yml', 'r') as f:
               data = yaml.load(f, Loader=yaml.SafeLoader)
@@ -133,7 +133,7 @@ jobs:
 
                 with open(env_file, 'a') as f:
                   f.write('GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY=true')
-                print(os.getenv('GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY')
+                print(os.getenv('GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY'))
               else:
                 print(response.status_code)
                 print('No external whitelist file found')
