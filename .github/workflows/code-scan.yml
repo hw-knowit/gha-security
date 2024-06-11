@@ -105,6 +105,8 @@ jobs:
             content = base64.b64decode(response.json()['content']).decode('utf-8')
             with open('whitelist.yml', 'w') as f:
               f.write(content)
+
+            with open('whitelist.yml', 'r') as f:
               data = yaml.load(f, Loader=yaml.SafeLoader)
               print(data)
 
