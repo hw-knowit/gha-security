@@ -82,7 +82,7 @@ jobs:
           # required to checkout the repository
           contents: read
       steps:
-      - name: "Get whitelist file (if it exists)"
+      - name: "Get whitelist file(s)"
         run: |
           python -c "
           import os
@@ -104,15 +104,23 @@ jobs:
             content = base64.b64decode(response.json()['content']).decode('utf-8')
             with open('whitelist.yml', 'w') as f:
               f.write(content)
+
+            with open('whitelist.yml', 'r') as f:
+              data = yaml.load(f, Loader=yaml.SafeLoader)
+              print(data)
+
+                
+              
             
             with open(env_file, 'a') as f:
               f.write('GHA_SECURITY_CODE_SCAN_WHITELIST=whitelist.yml')
           else:
-            print('No whitelist file found')
+            print('No whitelist files found')
           "   
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
+      - name: "Get external "
       - name: Install dependencies
         if: env.GHA_SECURITY_CODE_SCAN_WHITELIST == 'whitelist.yml'
         run: |
@@ -158,7 +166,7 @@ jobs:
           }
 
           with open('whitelist.yml', 'r') as f:
-              data = yaml.safe_load(f)
+              data = yaml.load(f, Loader=yaml.SafeLoader)
           
           v = Validator(schema)
           if v.validate(data):
@@ -168,6 +176,7 @@ jobs:
               print(v.errors)
               sys.exit(1)
           "
+      
           
    
             
