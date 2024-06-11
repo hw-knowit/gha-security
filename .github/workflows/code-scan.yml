@@ -99,7 +99,9 @@ jobs:
           repository = os.getenv('repository')
           env_file = os.getenv('GITHUB_ENV')
 
-          print(external_token)
+          if external_token is None:
+            external_token = token
+          
 
           headers = {
             'Accept': 'application/vnd.github+json',
