@@ -95,10 +95,8 @@ jobs:
           import yaml
 
           token = os.getenv('GITHUB_TOKEN')
-          external_token = os.getenv('GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY_TOKEN')
-          external_repository = os.getenv('GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY')
-          print(f'external_repository: {external_repository}')
           repository = os.getenv('repository')
+          external_token = os.getenv('GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY_TOKEN')
           env_file = os.getenv('GITHUB_ENV')
 
           headers = {
@@ -121,6 +119,7 @@ jobs:
 
             if data['spec']['inherit']:
               external_repository = data['spec']['inherit']
+              print(f'External repository: {external_repository}')
               headers = {
                 'Accept': 'application/vnd.github+json',
                 'X-GitHub-Api-Version': '2022-11-28',
