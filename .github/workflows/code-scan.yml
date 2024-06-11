@@ -140,14 +140,16 @@ jobs:
                 required: true
                 type: string
           spec:
-            required: true
             type: dict
-            schema:
-              anyof:
-                - inherit:
+            anyof:
+              - required: true
+                schema:
+                  inherit:
                     required: true
                     type: string
-                - whitelist:
+              - required: true
+                schema:
+                  whitelist:
                     required: true
                     type: list
                     schema:
