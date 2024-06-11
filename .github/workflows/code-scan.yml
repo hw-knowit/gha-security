@@ -105,7 +105,7 @@ jobs:
             'Authorization': f'token {token}'
           }
           response = requests.get(f'https://api.github.com/repos/{repository}/contents/code_scan_config.yml', headers=headers)
-
+          print(f'Code scan config response: {response.status_code}')
           if(response.status_code == 200):
             content = base64.b64decode(response.json()['content']).decode('utf-8')
             with open('whitelist.yml', 'w') as f:
