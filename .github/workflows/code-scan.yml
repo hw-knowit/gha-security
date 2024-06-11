@@ -112,7 +112,9 @@ jobs:
               f.write(content)
 
             with open(env_file, 'a') as f:
+              print('writing to env file')
               f.write('GHA_SECURITY_CODE_SCAN_WHITELIST=true')
+            print('GHA_SECURITY_CODE_SCAN_WHITELIST')
             print(os.getenv('GHA_SECURITY_CODE_SCAN_WHITELIST'))
 
             with open('whitelist.yml', 'r') as f:
