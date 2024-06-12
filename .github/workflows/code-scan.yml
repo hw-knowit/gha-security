@@ -125,7 +125,7 @@ jobs:
 
             external_whitelist = True
             response = requests.get(f'https://api.github.com/repos/entur/{external_repository}/contents/code_scan_config.yml', headers=headers)
-            if response.status.code != 404 || response.status.code != 200:
+            if response.status.code != 404 or response.status.code != 200:
               external_whitelist = False
               print(f'::error ::Could not get external whitelist file ({response.status.code} - {response.description})')
             if response.status.code == 404:
