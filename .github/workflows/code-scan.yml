@@ -102,9 +102,10 @@ jobs:
 
           external_token = os.getenv('GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY_TOKEN')
           env_file = os.getenv('GITHUB_ENV')
-
           external_repository = ''
           whitelist = False
+          external_whitelist = False
+
           try:
             with open('code_scan_config.yml', 'r') as f:
               external_repository = yaml.safe_load(f, Loader=yaml.SafeLoader).get('spec', {}).get('inherit', '')
@@ -124,19 +125,18 @@ jobs:
               'Authorization': f'token {external_token}'
             }
 
-            external_whitelist = True
             response = requests.get(f'https://api.github.com/repos/entur/{external_repository}/contents/code_scan_config.yml', headers=headers)
             if response.status.code != 404 or response.status.code != 200:
-              external_whitelist = False
               print(f'::error ::Could not get external whitelist file ({response.status.code} - {response.description})')
             if response.status.code == 404:
               response = requests.get(f'https://api.github.com/repos/entur/{external_repository}/contents/code_scan_config.yaml', headers=headers)
-              if response.status.code == 404:
-                external_whitelist = False
-                print(f'::error ::Could not find external whitelist file ({response.status.code} - {response.description})')
               if response.status.code != 200:
-                external_whitelist = False
                 print(f'::error ::Could not get external whitelist file ({response.status.code} - {response.description})')
+              if response.status.code == 200:
+                external_whitelist = True
+            if response.status.code == 200:
+              external_whitelist = True
+              
                 
           with open(env_file, 'a') as f:
             f.write('GHA_SECURITY_CODE_SCAN_WHITELIST={whitelist}\n')
