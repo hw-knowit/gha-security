@@ -139,7 +139,7 @@ jobs:
               
                 
           with open(env_file, 'a') as f:
-            f.write('GHA_SECURITY_CODE_SCAN_WHITELIST={whitelist}\n')
+            f.write(f'GHA_SECURITY_CODE_SCAN_WHITELIST={whitelist}\n')
             f.write(f'GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST={external_whitelist}\n')
           "   
         env:
