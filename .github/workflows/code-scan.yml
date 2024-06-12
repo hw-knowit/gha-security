@@ -86,6 +86,17 @@ jobs:
           # required to checkout the repository
           contents: read
       steps:
+      - name: Install dependencies
+        run: |
+          cat > requirements.txt << EOF
+          Cerebrus == 1.3.5 \
+          	--hash=sha256:7649a5815024d18eb7c6aa5e7a95355c649a53aacfc9b050e9d0bf6bfa2af372
+          	--hash=sha256:81011e10266ef71b6ec6d50e60171258a5b134d69f8fb387d16e4936d0d47642
+          EOF
+          pip install --only-binary=:all: --require-hashes -r requirements.txt
+          rm requirements.txt
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
       - name: "Check after whitelist file(s)"
         run: |
           python -c "
@@ -94,66 +105,55 @@ jobs:
           import base64
           import yaml
 
-          token = os.getenv('GITHUB_TOKEN')
-          repository = os.getenv('repository')
           external_token = os.getenv('GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY_TOKEN')
           env_file = os.getenv('GITHUB_ENV')
 
-          headers = {
-            'Accept': 'application/vnd.github+json',
-            'X-GitHub-Api-Version': '2022-11-28',
-            'Authorization': f'token {token}'
-          }
-          response = requests.get(f'https://api.github.com/repos/{repository}/contents/code_scan_config.yml', headers=headers)
-          if response.status_code == 200:
-            with open(env_file, 'a') as f:
-              f.write('GHA_SECURITY_CODE_SCAN_WHITELIST=true\n')
+          whitelist = False
+          try:
+            with open('code_scan_config.yml', 'r') as f:
+              external_repository = yaml.safe_load(f, Loader=yaml.SafeLoader).get('spec', {}).get('inherit', '')
+              whitelist = True
+          except IOError:
+            try:
+              with open('code_scan_config.yaml', 'r') as f:
+                external_repository = yaml.safe_load(f, Loader=yaml.SafeLoader).get('spec', {}).get('inherit', '')
+                whitelist = True
+            except IOError:
+              print(f'::notice ::Could not find whitelist file')
+        
+          if external_repository != '':
+            headers = {
+              'Accept': 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28',
+              'Authorization': f'token {external_token}'
+            }
 
-            content = base64.b64decode(response.json()['content']).decode('utf-8')
-            with open('whitelist.yml', 'w') as f:
-              f.write(content)      
-
-            with open('whitelist.yml', 'r') as f:
-              data = yaml.load(f, Loader=yaml.SafeLoader)
-
-            if data['spec']['inherit']:
-              external_repository = data['spec']['inherit']
-              headers = {
-                'Accept': 'application/vnd.github+json',
-                'X-GitHub-Api-Version': '2022-11-28',
-                'Authorization': f'token {external_token}'
-              }            
-              response = requests.get(f'https://api.github.com/repos/entur/{external_repository}/contents/code_scan_config.yml', headers=headers)
-              if response.status_code == 200:
-                with open(env_file, 'a') as f:
-                  f.write('GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST=true\n')
-
-                content = base64.b64decode(response.json()['content']).decode('utf-8')
-                with open('external_whitelist.yml', 'a') as f:
-                  f.write(content)
-
-              else:
-                print('No external whitelist file found')
-                print(response.status_code)
-          else:
-            print('No whitelist files found')
-            print(response.status_code)
+            external_whitelist = True
+            response = requests.get(f'https://api.github.com/repos/entur/{external_repository}/contents/code_scan_config.yml', headers=headers)
+            if response.status.code != 404 || response.status.code != 200:
+              external_whitelist = False
+              print(f'::error ::Could not get external whitelist file ({response.status.code} - {response.description})')
+            if response.status.code == 404:
+              response = requests.get(f'https://api.github.com/repos/entur/{external_repository}/contents/code_scan_config.yaml', headers=headers)
+              if response.status.code == 404:
+                external_whitelist = False
+                print(f'::error ::Could not find external whitelist file ({response.status.code} - {response.description})')
+              if response.status.code != 200:
+                external_whitelist = False
+                print(f'::error ::Could not get external whitelist file ({response.status.code} - {response.description})')
+                
+          with open(env_file, 'a') as f:
+            f.write('GHA_SECURITY_CODE_SCAN_WHITELIST={whitelist}\n')
+            f.write(f'GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST={external_whitelist}\n')
           "   
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          repository: ${{ github.repository }}
           GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY_TOKEN: ${{ secrets.external_repository_token }}
-      - name: "Print variables"
+      - name: "Print variables - REMEMBER TO DELETE THIS STEP"
         run: |
           echo ${{ env.GHA_SECURITY_CODE_SCAN_WHITELIST }}
           echo ${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY }}
-      - name: Install dependencies
-        if: ${{ env.GHA_SECURITY_CODE_SCAN_WHITELIST == 'true' }}
-        run: |
-          pip install cerberus
-        shell: bash
       - name: "Validate whitelist file"
-        if: ${{ env.GHA_SECURITY_CODE_SCAN_WHITELIST == 'true' }}
+        if: ${{ env.GHA_SECURITY_CODE_SCAN_WHITELIST == 'True' }}
         run: |
           python -c "
           import yaml
@@ -175,10 +175,10 @@ jobs:
                   'type': 'dict',
                   'required': True,
                   'schema': {
-                      'inherit': {'type': 'string', 'nullable': True},
+                      'inherit': {'type': 'string' },
                       'whitelist': {
                           'type': 'list',
-                          'nullable': True,
+                          'minlength': 1,
                           'schema': {
                               'type': 'dict',
                               'schema': {
@@ -191,27 +191,26 @@ jobs:
                   }
               }
           }
+          v = Validator(schema)
 
           with open('whitelist.yml', 'r') as f:
-              data = yaml.load(f, Loader=yaml.SafeLoader)
-          
-          v = Validator(schema)
-          if v.validate(data):
-              print('The whitelist file is valid.')
-          else:
-              print('The whitelist file is invalid. Here are the errors:')
-              print(v.errors)
-              sys.exit(1)
-
-          if os.getenv('GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST') == 'true':
-              with open('external_whitelist.yml', 'r') as f:
-                  data = yaml.load(f, Loader=yaml.SafeLoader)
+              data = yaml.safe_load(f, Loader=yaml.SafeLoader) 
               if v.validate(data):
-                  print('The external whitelist file is valid.')
+                  print('The whitelist file is valid.')
               else:
-                  print('The external whitelist file is invalid. Here are the errors:')
+                  print('The whitelist file is invalid. Here are the errors:')
                   print(v.errors)
                   sys.exit(1)
+
+          if os.getenv('GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST') == 'True':
+              with open('external_whitelist.yml', 'r') as f:
+                  data = yaml.safe_load(f, Loader=yaml.SafeLoader)
+                  if v.validate(data):
+                      print('The external whitelist file is valid.')
+                  else:
+                      print('The external whitelist file is invalid. Here are the errors:')
+                      print(v.errors)
+                      sys.exit(1)
           "
       
           
