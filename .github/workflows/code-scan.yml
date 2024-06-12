@@ -103,6 +103,7 @@ jobs:
           external_token = os.getenv('GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY_TOKEN')
           env_file = os.getenv('GITHUB_ENV')
 
+          external_repository = ''
           whitelist = False
           try:
             with open('code_scan_config.yml', 'r') as f:
