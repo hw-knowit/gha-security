@@ -108,15 +108,15 @@ jobs:
 
           try:
             with open('code_scan_config.yml', 'r') as f:
-              external_repository = yaml.safe_load(f, Loader=yaml.SafeLoader).get('spec', {}).get('inherit', '')
+              external_repository = yaml.safe_load(f).get('spec', {}).get('inherit', '')
               whitelist = True
           except IOError:
             try:
               with open('code_scan_config.yaml', 'r') as f:
-                external_repository = yaml.safe_load(f, Loader=yaml.SafeLoader).get('spec', {}).get('inherit', '')
+                external_repository = yaml.safe_load(f).get('spec', {}).get('inherit', '')
                 whitelist = True
             except IOError:
-              print(f'::notice ::Could not find whitelist file')
+              print(f'::notice ::Whitelist file not found')
         
           if external_repository != '':
             headers = {
@@ -190,7 +190,7 @@ jobs:
           v = Validator(schema)
 
           with open('whitelist.yml', 'r') as f:
-              data = yaml.safe_load(f, Loader=yaml.SafeLoader) 
+              data = yaml.safe_load(f) 
               if v.validate(data):
                   print('The whitelist file is valid.')
               else:
@@ -200,7 +200,7 @@ jobs:
 
           if os.getenv('GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST') == 'True':
               with open('external_whitelist.yml', 'r') as f:
-                  data = yaml.safe_load(f, Loader=yaml.SafeLoader)
+                  data = yaml.safe_load(f)
                   if v.validate(data):
                       print('The external whitelist file is valid.')
                   else:
@@ -327,7 +327,7 @@ jobs:
 #            remote_config = None
 #            try:
 #              with open('external_repository/'+os.getenv('GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST'), 'r') as f: 
-#                remote_config = yaml.safe_load(f, Loader=yaml.SafeLoader)
+#                remote_config = yaml.safe_load(f)
 #              for element in remote_config['spec']['whitelist']:
 #                whitelist[element['cwe']] = {
 #                  'comment': element['comment'],
@@ -339,7 +339,7 @@ jobs:
 #            local_config = None
 #            try: 
 #              with open(os.getenv('GHA_SECURITY_CODE_SCAN_LOCAL_WHITELIST'), 'r') as f:
-#                local_config = yaml.safe_load(f, Loader=yaml.SafeLoader)
+#                local_config = yaml.safe_load(f)
 #              for element in local_config['spec']['whitelist']:
 #                whitelist[element['cwe']] = {
 #                  'comment': element['comment'],
