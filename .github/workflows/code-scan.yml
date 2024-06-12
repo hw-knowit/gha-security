@@ -89,8 +89,8 @@ jobs:
       - name: Install dependencies
         run: |
           cat > requirements.txt << EOF
-          Cerebrus == 1.3.5 \\
-          	--hash=sha256:7649a5815024d18eb7c6aa5e7a95355c649a53aacfc9b050e9d0bf6bfa2af372 \\
+          Cerebrus == 1.3.5 \
+          	--hash=sha256:7649a5815024d18eb7c6aa5e7a95355c649a53aacfc9b050e9d0bf6bfa2af372 \
           	--hash=sha256:81011e10266ef71b6ec6d50e60171258a5b134d69f8fb387d16e4936d0d47642
           EOF
           pip install --only-binary=:all: --require-hashes -r requirements.txt
