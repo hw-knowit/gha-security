@@ -331,7 +331,7 @@ jobs:
 #            remote_config = None
 #            try:
 #              with open('external_repository/'+os.getenv('GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST'), 'r') as f: 
-#                remote_config = yaml.load(f, Loader=yaml.SafeLoader)
+#                remote_config = yaml.safe_load(f, Loader=yaml.SafeLoader)
 #              for element in remote_config['spec']['whitelist']:
 #                whitelist[element['cwe']] = {
 #                  'comment': element['comment'],
@@ -343,7 +343,7 @@ jobs:
 #            local_config = None
 #            try: 
 #              with open(os.getenv('GHA_SECURITY_CODE_SCAN_LOCAL_WHITELIST'), 'r') as f:
-#                local_config = yaml.load(f, Loader=yaml.SafeLoader)
+#                local_config = yaml.safe_load(f, Loader=yaml.SafeLoader)
 #              for element in local_config['spec']['whitelist']:
 #                whitelist[element['cwe']] = {
 #                  'comment': element['comment'],
