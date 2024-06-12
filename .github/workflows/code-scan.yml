@@ -95,6 +95,7 @@ jobs:
           EOF
           pip install --only-binary=:all: --require-hashes -r requirements.txt
           rm requirements.txt
+        shell: bash
       - name: "Checkout repository"
         uses: actions/checkout@v4
       - name: "Check after whitelist file(s)"
