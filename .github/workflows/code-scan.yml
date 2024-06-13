@@ -208,7 +208,7 @@ jobs:
           if v.validate(data):
               print('The allowlist file is valid.')
           else:
-              print(f'error ::The allowlist file is invalid. Here are the errors: {v.errors}')
+              print(f'::error ::The allowlist file is invalid. Here are the errors: {v.errors}')
               sys.exit(1)
               
           if env.GHA_SECURITY_CODE_SCAN_EXTERNAL_ALLOWLIST == 'True':  
@@ -222,9 +222,7 @@ jobs:
             if v.validate(data):
                 print('The external allowlist file is valid.')
             else:
-                print(f'error ::The external allowlist file is invalid. Here are the errors: {v.errors}')
-                print('The external allowlist file is invalid. Here are the errors:')
-                print(v.errors)
+                print(f'::error ::The external allowlist file is invalid. Here are the errors: {v.errors}')
                 sys.exit(1)
           "
       - name: "Get code scan alerts -- REMEMBER TO FIX"
