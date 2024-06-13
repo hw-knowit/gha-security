@@ -92,7 +92,7 @@ jobs:
         shell: bash
       - name: "Checkout repository"
         uses: actions/checkout@v4
-      - name: "Check after whitelist file(s)"
+      - name: "Check if whitelist files exist"
         run: |
           python -c "
           import os
@@ -102,6 +102,7 @@ jobs:
 
           external_token = os.getenv('GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY_TOKEN')
           env_file = os.getenv('GITHUB_ENV')
+
           external_repository = ''
           whitelist = False
           external_whitelist = False
@@ -151,7 +152,8 @@ jobs:
         run: |
           echo ${{ env.GHA_SECURITY_CODE_SCAN_WHITELIST }}
           echo ${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY }}
-      - name: "Validate whitelist file"
+      - name: "Validate whitelist file(s)"
+        id: validate_whitelists
         if: ${{ env.GHA_SECURITY_CODE_SCAN_WHITELIST == 'True' }}
         run: |
           python -c "
@@ -206,215 +208,140 @@ jobs:
           if v.validate(data):
               print('The whitelist file is valid.')
           else:
-              print('The whitelist file is invalid. Here are the errors:')
-              print(v.errors)
+              print(f'error ::The whitelist file is invalid. Here are the errors: {v.errors}')
               sys.exit(1)
               
-          data = ''
-          try:
-            with open('external_code_scan_config.yml', 'r') as f:
-              data = yaml.safe_load(f)
-          except IOError:
-            print('::error ::External whitelist file not found')
-            sys.exit(1)
-
-          if v.validate(data):
-              print('The external whitelist file is valid.')
-          else:
-              print('The external whitelist file is invalid. Here are the errors:')
-              print(v.errors)
+          if env.GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST == 'True':  
+            data = ''
+            try:
+              with open('external_code_scan_config.yml', 'r') as f:
+                data = yaml.safe_load(f)
+            except IOError:
+              print('::error ::External whitelist file not found')
               sys.exit(1)
+            if v.validate(data):
+                print('The external whitelist file is valid.')
+            else:
+                print(f'error ::The external whitelist file is invalid. Here are the errors: {v.errors}')
+                print('The external whitelist file is invalid. Here are the errors:')
+                print(v.errors)
+                sys.exit(1)
           "
-      
-          
-   
+      - name: "Get code scan alerts -- REMEMBER TO FIX"
+        run: |
+          gh api \
+            --method GET \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/code-scanning/alerts \
+            -F state="open" -F ref="${{ github.ref }}" -F per_page="100" > code_scan_alerts.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: "Whitelist code scan alerts"
+        if: steps.validate_whitelists.outcome == 'success'
+        run: |
+          python -c "
+          import yaml
+          import json
+          import os
+
+          headers = {
+          'Accept': 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+          'Authorization': 'token {}'.format(os.getenv('GITHUB_TOKEN'))
+          }
+
+          whitelist = {}
+          reason_mapping = {
+            'false_positive': 'false positive',
+            'wont_fix': 'won\'t fix',
+            'test': 'used in tests'
+          }
             
-#        - name: "Checkout local whitelist"
-#          id: checkout-local-whitelist
-#          uses: actions/checkout@v4
-#          with:
-#            sparse-checkout: code_scan_config.yml
-#            sparse-checkout-cone-mode: false
-#        - name: "Checkout external whitelist (from private repository)"
-#          id: checkout-external-whitelist-private
-#          if: ${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST != '' && env.GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY != '' && env.GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY_TOKEN != '' }}
-#          uses: actions/checkout@v4
-#          with: 
-#            repository: entur/${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY}}
-#            path: './external_repository'
-#            sparse-checkout: ${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST }}
-#            sparse-checkout-cone-mode: false
-#            token: ${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY_TOKEN }}
-#        - name: "Checkout external whitelist (from public repository)"
-#          id: checkout-external-whitelist-public
-#          if: ${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST != '' && env.GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY != '' && env.GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY_TOKEN == '' }}
-#          uses: actions/checkout@v4
-#          with: 
-#            repository: entur/${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY }}
-#            path: './external_repository'
-#            sparse-checkout: ${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST }}
-#            sparse-checkout-cone-mode: false
-#        - name: "Create code whitelist schema file"
-#          run: |
-#            cat > code_whitelist_schema.yaml << EOF
-#            apiVersion: 
-#              required: true
-#              type: string
-#              allowed:
-#                - entur.io/v1alpha1
-#            kind:
-#                required: true
-#                type: string
-#                allowed:
-#                  - CodeScanConfig
-#            metadata:
-#                required: true
-#                type: dict
-#                schema:
-#                  name:
-#                    required: true
-#                    type: string
-#            spec:
-#              required: true
-#              type: dict
-#              schema:
-#                whitelist:
-#                  required: true
-#                  type: list
-#                  schema:
-#                    type: dict
-#                    schema:
-#                      cwe:
-#                        required: true
-#                        type: string
-#                      comment:
-#                        required: true
-#                        type: string
-#                      reason:
-#                        required: true
-#                        type: string
-#                        allowed:
-#                        - false_positive
-#                        - wont_fix
-#                        - test
-#            EOF
-#            echo 'GHA_SECURITY_CODE_SCAN_WHITELIST_SCHEMA=code_whitelist_schema.yaml' >> $GITHUB_ENV
-#        - name: "Validate local whitelist file against schema"
-#          if: steps.checkout-local-whitelist.outcome == 'success'
-#          uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
-#          with:
-#            schema_path: ${{ env.GHA_SECURITY_CODE_SCAN_WHITELIST_SCHEMA }}
-#            document_path: ${{ env.GHA_SECURITY_CODE_SCAN_LOCAL_WHITELIST }}
-#        - name: "Validate external whitelist file against schema"
-#          if: steps.checkout-external-whitelist-private.outcome == 'success' || steps.checkout-external-whitelist-public.outcome == 'success'
-#          uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
-#          with:
-#            schema_path: ${{ env.GHA_SECURITY_CODE_SCAN_WHITELIST_SCHEMA }}
-#            document_path: external_repository/${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST }}
-#        - name: "Get code scan alerts"
-#          run: |
-#            gh api \
-#              --method GET \
-#              -H "Accept: application/vnd.github+json" \
-#              -H "X-GitHub-Api-Version: 2022-11-28" \
-#              /repos/${{ github.repository }}/code-scanning/alerts \
-#              -F state="open" -F ref="${{ github.ref }}" -F per_page="100" > code_scan_alerts.json
-#          env:
-#            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#        - name: "Whitelist code scan alerts"
-#          run: |
-#            python -c "
-#            import yaml
-#            import json
-#            import os
-#
-#            headers = {
-#            'Accept': 'application/vnd.github+json',
-#            'X-GitHub-Api-Version': '2022-11-28',
-#            'Authorization': 'token {}'.format(os.getenv('GITHUB_TOKEN'))
-#            }
-#
-#            whitelist = {}
-#            reason_mapping = {
-#              'false_positive': 'false positive',
-#              'wont_fix': 'won\'t fix',
-#              'test': 'used in tests'
-#            }
-#
-#            remote_config = None
-#            try:
-#              with open('external_repository/'+os.getenv('GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST'), 'r') as f: 
-#                remote_config = yaml.safe_load(f)
-#              for element in remote_config['spec']['whitelist']:
-#                whitelist[element['cwe']] = {
-#                  'comment': element['comment'],
-#                  'reason': reason_mapping[element['reason']]
-#                }           
-#            except IOError:
-#              pass
-#              
-#            local_config = None
-#            try: 
-#              with open(os.getenv('GHA_SECURITY_CODE_SCAN_LOCAL_WHITELIST'), 'r') as f:
-#                local_config = yaml.safe_load(f)
-#              for element in local_config['spec']['whitelist']:
-#                whitelist[element['cwe']] = {
-#                  'comment': element['comment'],
-#                  'reason': reason_mapping[element['reason']]
-#                }           
-#            except IOError:
-#              pass
-#
-#            with open('code_scan_alerts.json') as f:
-#              code_scan_alerts = json.load(f)
-#
-#            for cwe, data in whitelist.items():
-#              for alert in code_scan_alerts:
-#                if 'external/cwe/'+cwe in alert['rule']['tags']:
-#                  url = 'https://api.github.com/repos/{}/code-scanning/alerts/{}'.format('${{ github.repository }}', alert['number'])
-#                  data_to_send = {
-#                    'state': 'dismissed',
-#                    'dismissed_reason': data['reason'],
-#                    'dismissed_comment': data['comment']
-#                  }
-#                  response = requests.patch(url, headers=headers, json=data_to_send)
-#            "
-#          env:
-#            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          remote_config = None
+          try:
+            with open('external_code_scan_config.yml'), 'r') as f: 
+              remote_config = yaml.safe_load(f)
+            for element in remote_config['spec']['whitelist']:
+              whitelist[element['cwe']] = {
+                'comment': element['comment'],
+                'reason': reason_mapping[element['reason']]
+              }           
+          except (IOError, KeyError):
+            pass
+            
+          local_config = None
+          try: 
+            with open('code_scan_config.yml'), 'r') as f:
+              local_config = yaml.safe_load(f)
+            for element in local_config['spec']['whitelist']:
+              whitelist[element['cwe']] = {
+                'comment': element['comment'],
+                'reason': reason_mapping[element['reason']]
+              }           
+          except IOError:
+            try: 
+              with open('code_scan_config.yaml'), 'r') as f:
+                local_config = yaml.safe_load(f)
+              for element in local_config['spec']['whitelist']:
+                whitelist[element['cwe']] = {
+                  'comment': element['comment'],
+                  'reason': reason_mapping[element['reason']]
+                }
+            except (IOError, KeyError):
+              pass
+          except KeyError:
+            pass
+
+          with open('code_scan_alerts.json') as f:
+            code_scan_alerts = json.load(f)
+          for cwe, data in whitelist.items():
+            for alert in code_scan_alerts:
+              if 'external/cwe/'+cwe in alert['rule']['tags']:
+                url = 'https://api.github.com/repos/{}/code-scanning/alerts/{}'.format('${{ github.repository }}', alert['number'])
+                data_to_send = {
+                  'state': 'dismissed',
+                  'dismissed_reason': data['reason'],
+                  'dismissed_comment': data['comment']
+                }
+                response = requests.patch(url, headers=headers, json=data_to_send)
+          "
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
-#  check-for-critical-alerts:
-#    runs-on: ubuntu-latest
-#    if: always() && github.event_name == 'pull_request'
-#    needs: whitelist_code_scan_alerts
-#    permissions: 
-#        security-events: read # required to read code scan alerts
-#        issues: write # required for creating issues, and/or adding issue comments
-#        pull-requests: write # required for creating comments on pull requests
-#    steps: 
-#      - name: "Get critical code scan alerts"
-#        run: |
-#          alerts="$(gh api \
-#            --method GET \
-#            -H 'Accept: application/vnd.github+json' \
-#            -H 'X-GitHub-Api-Version: 2022-11-28' \
-#            /repos/${{ github.repository }}/code-scanning/alerts \
-#            -F severity='critical' -F state='open' -F ref='${{ github.ref }}' -F per_page='100' )"
-#            if [ "$alerts" == "[]" ]; then
-#              echo 'GHA_SECURITY_CODE_SCAN_CREATE_PR_COMMENT='false >> $GITHUB_ENV
-#            else
-#              echo 'GHA_SECURITY_CODE_SCAN_CREATE_PR_COMMENT='true >> $GITHUB_ENV
-#            fi
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#      - name: "Create comment on pull request if critical alerts are found"
-#        if: env.GHA_SECURITY_CODE_SCAN_CREATE_PR_COMMENT == 'true'
-#        run: |
-#          gh api /repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
-#            -H "Accept: application/vnd.github.v3+json" \
-#            --field "body=:no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: 
-#              Code scan detected critical vulnerabilities in the code. Please address these vulnerabilities as soon as possible. 
-#              The scan results can be found [here](https://github.com/${{ github.repository }}/security/code-scanning?query=is%3Aopen+pr%3A${{ github.event.pull_request.number }}). 
-#              If you believe one or more of the reported vulnerabilities are false positives/cannot be fixed/can be ignored, please see the [Code Scan documentation](https://github.com/entur/gha-security/blob/main/README-code_scan.md#white-listing-vulnerabilities) on how to whitelist. 
-#              :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry:"
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  check-for-critical-alerts:
+    runs-on: ubuntu-latest
+    if: always() && github.event_name == 'pull_request'
+    needs: whitelist_code_scan_alerts
+    permissions: 
+        security-events: read # required to read code scan alerts
+        issues: write # required for creating issues, and/or adding issue comments
+        pull-requests: write # required for creating comments on pull requests
+    steps: 
+      - name: "Get critical code scan alerts"
+        run: |
+          alerts="$(gh api \
+            --method GET \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            /repos/${{ github.repository }}/code-scanning/alerts \
+            -F severity='critical' -F state='open' -F ref='${{ github.ref }}' -F per_page='100' )"
+            if [ "$alerts" == "[]" ]; then
+              echo 'GHA_SECURITY_CODE_SCAN_CREATE_PR_COMMENT='False >> $GITHUB_ENV
+            else
+              echo 'GHA_SECURITY_CODE_SCAN_CREATE_PR_COMMENT='True >> $GITHUB_ENV
+            fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: "Create comment on pull request if critical alerts are found"
+        if: env.GHA_SECURITY_CODE_SCAN_CREATE_PR_COMMENT == 'True'
+        run: |
+          gh api /repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
+            -H "Accept: application/vnd.github.v3+json" \
+            --field "body=:no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: 
+              Code scan detected critical vulnerabilities in the code. Please address these vulnerabilities as soon as possible. 
+              The scan results can be found [here](https://github.com/${{ github.repository }}/security/code-scanning?query=is%3Aopen+pr%3A${{ github.event.pull_request.number }}). 
+              If you believe one or more of the reported vulnerabilities are false positives/cannot be fixed/can be ignored, please see the [Code Scan documentation](https://github.com/entur/gha-security/blob/main/README-code_scan.md#white-listing-vulnerabilities) on how to whitelist. 
+              :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry:"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
