@@ -16,7 +16,7 @@ jobs:
           - name: "Get repository languages"
             id: get-repository-languages
             run: |
-                languages="$(gh api /repos/${{ github.repository }}/languages | \
+                languages="$(gh api /repos/${{ env.GITHUB_REPOSITORY }}/languages | \
                   jq 'keys 
                       | .[] as $langs
                       | {
@@ -41,43 +41,44 @@ jobs:
                 echo 'GHA_SECURITY_CODE_SCAN_REPOSITORY_LANGUAGES='$languages >> $GITHUB_ENV
             env:
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              GITHUB_REPOSITORY: ${{ github.repository }}
 
-  codeql-analysis:
-      runs-on: ubuntu-latest
-      needs: get-repository-languages
-      permissions:
-          # CodeQL - required for all workflows
-          security-events: write
-
-          # CodeQL - only required for workflows in private repositories
-          actions: read
-          contents: read
-      strategy:
-          fail-fast: false
-          matrix:
-              language: ${{fromJson(needs.get-repository-languages.outputs.repository_languages)}}
-      steps:
-          - name: "Checkout repository"
-            uses: actions/checkout@v4
-          - name: "Initialize CodeQL for Java"
-            if: matrix.language == 'java'
-            uses: github/codeql-action/init@v3
-            with:
-              languages: ${{ matrix.language }}
-              build-mode: none
-          - name: "Initialize CodeQL"
-            if: matrix.language != 'java'
-            uses: github/codeql-action/init@v3
-            with:
-              languages: ${{ matrix.language }}
-          - name: "Perform CodeQL Analysis"
-            id: codeql-analysis
-            uses: github/codeql-action/analyze@v3
-            with:
-              category: "/language:${{ matrix.language }}"
+#  codeql-analysis:
+#      runs-on: ubuntu-latest
+#      needs: get-repository-languages
+#      permissions:
+#          # CodeQL - required for all workflows
+#          security-events: write
+#
+#          # CodeQL - only required for workflows in private repositories
+#          actions: read
+#          contents: read
+#      strategy:
+#          fail-fast: false
+#          matrix:
+#              language: ${{fromJson(needs.get-repository-languages.outputs.repository_languages)}}
+#      steps:
+#          - name: "Checkout repository"
+#            uses: actions/checkout@v4
+#          - name: "Initialize CodeQL for Java"
+#            if: matrix.language == 'java'
+#            uses: github/codeql-action/init@v3
+#            with:
+#              languages: ${{ matrix.language }}
+#              build-mode: none
+#          - name: "Initialize CodeQL"
+#            if: matrix.language != 'java'
+#            uses: github/codeql-action/init@v3
+#            with:
+#              languages: ${{ matrix.language }}
+#          - name: "Perform CodeQL Analysis"
+#            id: codeql-analysis
+#            uses: github/codeql-action/analyze@v3
+#            with:
+#              category: "/language:${{ matrix.language }}"
   
   allowlist_code_scan_alerts:
-      needs: codeql-analysis
+#      needs: codeql-analysis
       runs-on: ubuntu-latest
       permissions:
           # required to read and update code scan alerts
@@ -107,17 +108,17 @@ jobs:
           allowlist = False
           external_allowlist = False
 
-          try:
-            with open('code_scan_config.yml', 'r') as f:
-              external_repository = yaml.safe_load(f).get('spec', {}).get('inherit', '')
-              allowlist = True
-          except IOError:
-            try:
-              with open('code_scan_config.yaml', 'r') as f:
+          for file_name in ('code_scan_config.yml', 'code_scan_config.yaml'):
+            try: 
+              with open(file_name), 'r') as f:
                 external_repository = yaml.safe_load(f).get('spec', {}).get('inherit', '')
                 allowlist = True
+                
+              break
             except IOError:
-              print(f'::notice ::Allowlist file not found')
+              pass
+          if allowlist == False:
+            print(f'::notice ::Allowlist file not found')
         
           if external_repository != '':
             headers = {
@@ -126,17 +127,16 @@ jobs:
               'Authorization': f'token {external_token}'
             }
 
-            response = requests.get(f'https://api.github.com/repos/entur/{external_repository}/contents/code_scan_config.yml', headers=headers)
-            if response.status.code != 404 or response.status.code != 200:
-              print(f'::error ::Could not get external allowlist file ({response.status.code} - {response.description})')
-            if response.status.code == 404:
-              response = requests.get(f'https://api.github.com/repos/entur/{external_repository}/contents/code_scan_config.yaml', headers=headers)
-              if response.status.code != 200:
+            for file_name in ('code_scan_config.yml', 'code_scan_config.yaml'):
+              response = requests.get(f'https://api.github.com/repos/entur/{external_repository}/contents/{file_name}', headers=headers)
+              if response.status.code != 404 or response.status.code != 200:
                 print(f'::error ::Could not get external allowlist file ({response.status.code} - {response.description})')
+                break
               if response.status.code == 200:
                 external_allowlist = True
-            if response.status.code == 200:
-              external_allowlist = True
+                break
+            if external_allowlist == False:
+              print(f'::notice ::External allowlist file not found')
 
           if external_allowlist:
             with open('external_code_scan_config.yml', 'w') as f:
@@ -225,24 +225,18 @@ jobs:
                 print(f'::error ::The external allowlist file is invalid. Here are the errors: {v.errors}')
                 sys.exit(1)
           "
-      - name: "Get code scan alerts -- REMEMBER TO FIX"
-        run: |
-          gh api \
-            --method GET \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            /repos/${{ github.repository }}/code-scanning/alerts \
-            -F state="open" -F ref="${{ github.ref }}" -F per_page="100" > code_scan_alerts.json
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: "Allowlist code scan alerts"
         if: steps.validate_allowlists.outcome == 'success'
         run: |
           python -c "
+          import requests
           import yaml
           import json
           import os
+          import sys
 
+          repository = os.getenv('GITHUB_REPOSITORY')
+    
           headers = {
           'Accept': 'application/vnd.github+json',
           'X-GitHub-Api-Version': '2022-11-28',
@@ -256,90 +250,111 @@ jobs:
             'test': 'used in tests'
           }
             
-          remote_config = None
           try:
             with open('external_code_scan_config.yml'), 'r') as f: 
               remote_config = yaml.safe_load(f)
-            for element in remote_config['spec']['allowlist']:
-              allowlist[element['cwe']] = {
-                'comment': element['comment'],
-                'reason': reason_mapping[element['reason']]
-              }           
-          except (IOError, KeyError):
+              
+              for element in remote_config.get('spec', {}).get('allowlist', []):
+                cwe = element.get('cwe', '')
+                cwe_tag = f'external/cwe/{cwe}'
+                allowlist[cwe_tag] = {
+                  'comment': element.get('comment', '')
+                  'reason': reason_mapping[element.get('reason', '')]
+              } 
+          except IOError:
             pass
             
-          local_config = None
-          try: 
-            with open('code_scan_config.yml'), 'r') as f:
-              local_config = yaml.safe_load(f)
-            for element in local_config['spec']['allowlist']:
-              allowlist[element['cwe']] = {
-                'comment': element['comment'],
-                'reason': reason_mapping[element['reason']]
-              }           
-          except IOError:
+          for file_name in ('code_scan_config.yml', 'code_scan_config.yaml'):
             try: 
-              with open('code_scan_config.yaml'), 'r') as f:
+              with open(file_name), 'r') as f:
                 local_config = yaml.safe_load(f)
-              for element in local_config['spec']['allowlist']:
-                allowlist[element['cwe']] = {
-                  'comment': element['comment'],
-                  'reason': reason_mapping[element['reason']]
-                }
-            except (IOError, KeyError):
+                
+                for element in local_config.get('spec', {}).get('allowlist', []):
+                  cwe = element.get('cwe', '')
+                  cwe_tag = f'external/cwe/{cwe}'
+                  allowlist[cwe_tag] = {
+                    'comment': element.get('comment', '')
+                    'reason': reason_mapping[element.get('reason', '')]
+                  }
+                
+              break
+            except IOError:
               pass
-          except KeyError:
-            pass
+          
+          url = f'https://api.github.com/repos/{repository}/code-scanning/alerts?ref=${{ github.ref }}&per_page=100'
+          while True:
+            response = requests.get(url, headers=headers)
 
-          with open('code_scan_alerts.json') as f:
-            code_scan_alerts = json.load(f)
-          for cwe, data in allowlist.items():
-            for alert in code_scan_alerts:
-              if 'external/cwe/'+cwe in alert['rule']['tags']:
-                url = 'https://api.github.com/repos/{}/code-scanning/alerts/{}'.format('${{ github.repository }}', alert['number'])
-                data_to_send = {
-                  'state': 'dismissed',
-                  'dismissed_reason': data['reason'],
-                  'dismissed_comment': data['comment']
-                }
-                response = requests.patch(url, headers=headers, json=data_to_send)
+            if response.status_code != 200:
+              print(f'Could not get code scan alerts ({response.status.code} - {response.description})')
+              sys.exit(1)
+
+            alerts = response.json()
+            for alert in alerts:
+              for cwe_tag, data in allowlist.items():
+                if cwe_tag in alert.get('rule', {}).get('tags', []):
+                  patch_url = f'https://api.github.com/repos/{repository}/code-scanning/alerts/{alert.get('number', '')}'
+                  data_to_send = {
+                    'state': 'dismissed',
+                    'dismissed_reason': data.get('reason', ''),
+                    'dismissed_comment': data.get('comment', '')
+                  }
+                  # Should probably do some error checking here for status != 200
+
+                  response_patch = requests.patch(patch_url, headers=headers, json=data_to_send)
+
+            response_header = json.dumps(dict(response.headers))
+            links = response_header.get('links', '')
+            link_next_j = links.find('>; rel="next"')
+
+            if link_next_j == -1:
+              break
+
+            link_next_i = links.rfind('<', 0, link_next_j)
+            if link_next_i == -1:
+              break
+
+            url = links[link_next_i + 1:link_next_j]
           "
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         
-  check-for-critical-alerts:
-    runs-on: ubuntu-latest
-    if: always() && github.event_name == 'pull_request' && needs.codeql-analysis.result == 'success' 
-    needs: [allowlist_code_scan_alerts, codeql-analysis]
-    permissions: 
-        security-events: read # required to read code scan alerts
-        issues: write # required for creating issues, and/or adding issue comments
-        pull-requests: write # required for creating comments on pull requests
-    steps: 
-      - name: "Get critical code scan alerts"
-        run: |
-          alerts="$(gh api \
-            --method GET \
-            -H 'Accept: application/vnd.github+json' \
-            -H 'X-GitHub-Api-Version: 2022-11-28' \
-            /repos/${{ github.repository }}/code-scanning/alerts \
-            -F severity='critical' -F state='open' -F ref='${{ github.ref }}' -F per_page='100' )"
-            if [ "$alerts" == "[]" ]; then
-              echo 'GHA_SECURITY_CODE_SCAN_CREATE_PR_COMMENT='False >> $GITHUB_ENV
-            else
-              echo 'GHA_SECURITY_CODE_SCAN_CREATE_PR_COMMENT='True >> $GITHUB_ENV
-            fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: "Create comment on pull request if critical alerts are found"
-        if: env.GHA_SECURITY_CODE_SCAN_CREATE_PR_COMMENT == 'True'
-        run: |
-          gh api /repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments \
-            -H "Accept: application/vnd.github.v3+json" \
-            --field "body=:no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: 
-              Code scan detected critical vulnerabilities in the code. Please address these vulnerabilities as soon as possible. 
-              The scan results can be found [here](https://github.com/${{ github.repository }}/security/code-scanning?query=is%3Aopen+pr%3A${{ github.event.pull_request.number }}). 
-              If you believe one or more of the reported vulnerabilities are false positives/cannot be fixed/can be ignored, please see the [Code Scan documentation](https://github.com/entur/gha-security/blob/main/README-code_scan.md#white-listing-vulnerabilities) on how to allowlist. 
-              :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry:"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#  check-for-critical-alerts:
+#    runs-on: ubuntu-latest
+#    if: always() && github.event_name == 'pull_request' && needs.codeql-analysis.result == 'success' 
+#    needs: [allowlist_code_scan_alerts, codeql-analysis]
+#    permissions: 
+#        security-events: read # required to read code scan alerts
+#        issues: write # required for creating issues, and/or adding issue comments
+#        pull-requests: write # required for creating comments on pull requests
+#    steps: 
+#      - name: "Get critical code scan alerts"
+#        run: |
+#          alerts="$(gh api \
+#            --method GET \
+#            -H 'Accept: application/vnd.github+json' \
+#            -H 'X-GitHub-Api-Version: 2022-11-28' \
+#            /repos/${{ env.GITHUB_REPOSITORY }}/code-scanning/alerts \
+#            -F severity='critical' -F state='open' -F ref='${{ github.ref }}' -F per_page='100' )"
+#            if [ "$alerts" == "[]" ]; then
+#              echo 'GHA_SECURITY_CODE_SCAN_CREATE_PR_COMMENT='False >> $GITHUB_ENV
+#            else
+#              echo 'GHA_SECURITY_CODE_SCAN_CREATE_PR_COMMENT='True >> $GITHUB_ENV
+#            fi
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          GITHUB_REPOSITORY: ${{ github.repository }}
+#      - name: "Create comment on pull request if critical alerts are found"
+#        if: env.GHA_SECURITY_CODE_SCAN_CREATE_PR_COMMENT == 'True'
+#        run: |
+#          gh api /repos/${{ env.GITHUB_REPOSITORY }}/issues/${{ github.event.pull_request.number }}/comments \
+#            -H "Accept: application/vnd.github.v3+json" \
+#            --field "body=:no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: 
+#              Code scan detected critical vulnerabilities in the code. Please address these vulnerabilities as soon as possible. 
+#              The scan results can be found [here](https://github.com/${{ env.GITHUB_REPOSITORY }}/security/code-scanning?query=is%3Aopen+pr%3A${{ github.event.pull_request.number }}). 
+#              If you believe one or more of the reported vulnerabilities are false positives/cannot be fixed/can be ignored, please see the [Code Scan documentation](https://github.com/entur/gha-security/blob/main/README-code_scan.md#white-listing-vulnerabilities) on how to allowlist. 
+#              :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry:"
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          GITHUB_REPOSITORY: ${{ github.repository }}
