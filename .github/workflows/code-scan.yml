@@ -110,7 +110,7 @@ jobs:
 
           for file_name in ('code_scan_config.yml', 'code_scan_config.yaml'):
             try: 
-              with open(file_name), 'r') as f:
+              with open(file_name, 'r') as f:
                 external_repository = yaml.safe_load(f).get('spec', {}).get('inherit', '')
                 allowlist = True
                 
