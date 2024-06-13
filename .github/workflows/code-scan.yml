@@ -211,7 +211,7 @@ jobs:
               print(f'::error ::The allowlist file is invalid. Here are the errors: {v.errors}')
               sys.exit(1)
               
-          if env.GHA_SECURITY_CODE_SCAN_EXTERNAL_ALLOWLIST == 'True':  
+          if os.getenv('GHA_SECURITY_CODE_SCAN_EXTERNAL_ALLOWLIST') == 'True':  
             data = ''
             try:
               with open('external_code_scan_config.yml', 'r') as f:
