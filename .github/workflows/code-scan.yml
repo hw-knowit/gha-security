@@ -76,7 +76,7 @@ jobs:
 #            with:
 #              category: "/language:${{ matrix.language }}"
   
-  whitelist_code_scan_alerts:
+  allowlist_code_scan_alerts:
 #      needs: codeql-analysis
       runs-on: ubuntu-latest
       permissions:
@@ -96,7 +96,7 @@ jobs:
         shell: bash
       - name: "Checkout repository"
         uses: actions/checkout@v4
-      - name: "Check if whitelist files exist"
+      - name: "Check if allowlist files exist"
         run: |
           python -c "
           import os
@@ -108,20 +108,20 @@ jobs:
           env_file = os.getenv('GITHUB_ENV')
 
           external_repository = ''
-          whitelist = False
-          external_whitelist = False
+          allowlist = False
+          external_allowlist = False
 
           try:
             with open('code_scan_config.yml', 'r') as f:
               external_repository = yaml.safe_load(f).get('spec', {}).get('inherit', '')
-              whitelist = True
+              allowlist = True
           except IOError:
             try:
               with open('code_scan_config.yaml', 'r') as f:
                 external_repository = yaml.safe_load(f).get('spec', {}).get('inherit', '')
-                whitelist = True
+                allowlist = True
             except IOError:
-              print(f'::notice ::Whitelist file not found')
+              print(f'::notice ::Allowlist file not found')
         
           if external_repository != '':
             headers = {
@@ -132,33 +132,33 @@ jobs:
 
             response = requests.get(f'https://api.github.com/repos/entur/{external_repository}/contents/code_scan_config.yml', headers=headers)
             if response.status.code != 404 or response.status.code != 200:
-              print(f'::error ::Could not get external whitelist file ({response.status.code} - {response.description})')
+              print(f'::error ::Could not get external allowlist file ({response.status.code} - {response.description})')
             if response.status.code == 404:
               response = requests.get(f'https://api.github.com/repos/entur/{external_repository}/contents/code_scan_config.yaml', headers=headers)
               if response.status.code != 200:
-                print(f'::error ::Could not get external whitelist file ({response.status.code} - {response.description})')
+                print(f'::error ::Could not get external allowlist file ({response.status.code} - {response.description})')
               if response.status.code == 200:
-                external_whitelist = True
+                external_allowlist = True
             if response.status.code == 200:
-              external_whitelist = True
+              external_allowlist = True
 
-          if external_whitelist:
+          if external_allowlist:
             with open('external_code_scan_config.yml', 'w') as f:
               f.write(base64.b64decode(response.json()['content']).decode('utf-8'))
                 
           with open(env_file, 'a') as f:
-            f.write(f'GHA_SECURITY_CODE_SCAN_WHITELIST={whitelist}\n')
-            f.write(f'GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST={external_whitelist}\n')
+            f.write(f'GHA_SECURITY_CODE_SCAN_ALLOWLIST={allowlist}\n')
+            f.write(f'GHA_SECURITY_CODE_SCAN_EXTERNAL_ALLOWLIST={external_allowlist}\n')
           "   
         env:
           GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY_TOKEN: ${{ secrets.external_repository_token }}
       - name: "Print variables - REMEMBER TO DELETE THIS STEP"
         run: |
-          echo ${{ env.GHA_SECURITY_CODE_SCAN_WHITELIST }}
-          echo ${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY }}
-      - name: "Validate whitelist file(s)"
-        id: validate_whitelists
-        if: ${{ env.GHA_SECURITY_CODE_SCAN_WHITELIST == 'True' }}
+          echo ${{ env.GHA_SECURITY_CODE_SCAN_ALLOWLIST }}
+          echo ${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_ALLOWLIST }}
+      - name: "Validate allowlist file(s)"
+        id: validate_allowlists
+        if: ${{ env.GHA_SECURITY_CODE_SCAN_ALLOWLIST == 'True' }}
         run: |
           python -c "
           import yaml
@@ -181,7 +181,7 @@ jobs:
                   'required': True,
                   'schema': {
                       'inherit': {'type': 'string' },
-                      'whitelist': {
+                      'allowlist': {
                           'type': 'list',
                           'minlength': 1,
                           'schema': {
@@ -207,27 +207,27 @@ jobs:
               with open('code_scan_config.yaml', 'r') as f:
                 data = yaml.safe_load(f)
             except IOError:
-              print('::error ::Whitelist file not found')
+              print('::error ::Allowlist file not found')
               sys.exit(1)
           if v.validate(data):
-              print('The whitelist file is valid.')
+              print('The allowlist file is valid.')
           else:
-              print(f'error ::The whitelist file is invalid. Here are the errors: {v.errors}')
+              print(f'error ::The allowlist file is invalid. Here are the errors: {v.errors}')
               sys.exit(1)
               
-          if env.GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST == 'True':  
+          if env.GHA_SECURITY_CODE_SCAN_EXTERNAL_ALLOWLIST == 'True':  
             data = ''
             try:
               with open('external_code_scan_config.yml', 'r') as f:
                 data = yaml.safe_load(f)
             except IOError:
-              print('::error ::External whitelist file not found')
+              print('::error ::External allowlist file not found')
               sys.exit(1)
             if v.validate(data):
-                print('The external whitelist file is valid.')
+                print('The external allowlist file is valid.')
             else:
-                print(f'error ::The external whitelist file is invalid. Here are the errors: {v.errors}')
-                print('The external whitelist file is invalid. Here are the errors:')
+                print(f'error ::The external allowlist file is invalid. Here are the errors: {v.errors}')
+                print('The external allowlist file is invalid. Here are the errors:')
                 print(v.errors)
                 sys.exit(1)
           "
@@ -241,8 +241,8 @@ jobs:
             -F state="open" -F ref="${{ github.ref }}" -F per_page="100" > code_scan_alerts.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: "Whitelist code scan alerts"
-        if: steps.validate_whitelists.outcome == 'success'
+      - name: "Allowlist code scan alerts"
+        if: steps.validate_allowlists.outcome == 'success'
         run: |
           python -c "
           import yaml
@@ -255,7 +255,7 @@ jobs:
           'Authorization': 'token {}'.format(os.getenv('GITHUB_TOKEN'))
           }
 
-          whitelist = {}
+          allowlist = {}
           reason_mapping = {
             'false_positive': 'false positive',
             'wont_fix': 'won\'t fix',
@@ -266,8 +266,8 @@ jobs:
           try:
             with open('external_code_scan_config.yml'), 'r') as f: 
               remote_config = yaml.safe_load(f)
-            for element in remote_config['spec']['whitelist']:
-              whitelist[element['cwe']] = {
+            for element in remote_config['spec']['allowlist']:
+              allowlist[element['cwe']] = {
                 'comment': element['comment'],
                 'reason': reason_mapping[element['reason']]
               }           
@@ -278,8 +278,8 @@ jobs:
           try: 
             with open('code_scan_config.yml'), 'r') as f:
               local_config = yaml.safe_load(f)
-            for element in local_config['spec']['whitelist']:
-              whitelist[element['cwe']] = {
+            for element in local_config['spec']['allowlist']:
+              allowlist[element['cwe']] = {
                 'comment': element['comment'],
                 'reason': reason_mapping[element['reason']]
               }           
@@ -287,8 +287,8 @@ jobs:
             try: 
               with open('code_scan_config.yaml'), 'r') as f:
                 local_config = yaml.safe_load(f)
-              for element in local_config['spec']['whitelist']:
-                whitelist[element['cwe']] = {
+              for element in local_config['spec']['allowlist']:
+                allowlist[element['cwe']] = {
                   'comment': element['comment'],
                   'reason': reason_mapping[element['reason']]
                 }
@@ -299,7 +299,7 @@ jobs:
 
           with open('code_scan_alerts.json') as f:
             code_scan_alerts = json.load(f)
-          for cwe, data in whitelist.items():
+          for cwe, data in allowlist.items():
             for alert in code_scan_alerts:
               if 'external/cwe/'+cwe in alert['rule']['tags']:
                 url = 'https://api.github.com/repos/{}/code-scanning/alerts/{}'.format('${{ github.repository }}', alert['number'])
@@ -316,7 +316,7 @@ jobs:
   check-for-critical-alerts:
     runs-on: ubuntu-latest
     if: always() && github.event_name == 'pull_request'
-    needs: whitelist_code_scan_alerts
+    needs: allowlist_code_scan_alerts
     permissions: 
         security-events: read # required to read code scan alerts
         issues: write # required for creating issues, and/or adding issue comments
@@ -345,7 +345,7 @@ jobs:
             --field "body=:no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: 
               Code scan detected critical vulnerabilities in the code. Please address these vulnerabilities as soon as possible. 
               The scan results can be found [here](https://github.com/${{ github.repository }}/security/code-scanning?query=is%3Aopen+pr%3A${{ github.event.pull_request.number }}). 
-              If you believe one or more of the reported vulnerabilities are false positives/cannot be fixed/can be ignored, please see the [Code Scan documentation](https://github.com/entur/gha-security/blob/main/README-code_scan.md#white-listing-vulnerabilities) on how to whitelist. 
+              If you believe one or more of the reported vulnerabilities are false positives/cannot be fixed/can be ignored, please see the [Code Scan documentation](https://github.com/entur/gha-security/blob/main/README-code_scan.md#white-listing-vulnerabilities) on how to allowlist. 
               :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry:"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
