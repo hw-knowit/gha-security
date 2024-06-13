@@ -136,7 +136,10 @@ jobs:
                 external_whitelist = True
             if response.status.code == 200:
               external_whitelist = True
-              
+
+          if external_whitelist:
+            with open('external_code_scan_config.yml', 'w') as f:
+              f.write(base64.b64decode(response.json()['content']).decode('utf-8'))
                 
           with open(env_file, 'a') as f:
             f.write(f'GHA_SECURITY_CODE_SCAN_WHITELIST={whitelist}\n')
@@ -188,25 +191,39 @@ jobs:
               }
           }
           v = Validator(schema)
+          
+          data = ''
+          try:
+            with open('code_scan_config.yml', 'r') as f:
+              data = yaml.safe_load(f)
+          except IOError:
+            try:
+              with open('code_scan_config.yaml', 'r') as f:
+                data = yaml.safe_load(f)
+            except IOError:
+              print('::error ::Whitelist file not found')
+              sys.exit(1)
+          if v.validate(data):
+              print('The whitelist file is valid.')
+          else:
+              print('The whitelist file is invalid. Here are the errors:')
+              print(v.errors)
+              sys.exit(1)
+              
+          data = ''
+          try:
+            with open('external_code_scan_config.yml', 'r') as f:
+              data = yaml.safe_load(f)
+          except IOError:
+            print('::error ::External whitelist file not found')
+            sys.exit(1)
 
-          with open('whitelist.yml', 'r') as f:
-              data = yaml.safe_load(f) 
-              if v.validate(data):
-                  print('The whitelist file is valid.')
-              else:
-                  print('The whitelist file is invalid. Here are the errors:')
-                  print(v.errors)
-                  sys.exit(1)
-
-          if os.getenv('GHA_SECURITY_CODE_SCAN_EXTERNAL_WHITELIST') == 'True':
-              with open('external_whitelist.yml', 'r') as f:
-                  data = yaml.safe_load(f)
-                  if v.validate(data):
-                      print('The external whitelist file is valid.')
-                  else:
-                      print('The external whitelist file is invalid. Here are the errors:')
-                      print(v.errors)
-                      sys.exit(1)
+          if v.validate(data):
+              print('The external whitelist file is valid.')
+          else:
+              print('The external whitelist file is invalid. Here are the errors:')
+              print(v.errors)
+              sys.exit(1)
           "
       
           
