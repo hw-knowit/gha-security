@@ -308,10 +308,12 @@ jobs:
             link_next_j = links.find('>; rel="next"')
 
             if link_next_j == -1:
+              print('No more pages')
               break
 
             link_next_i = links.rfind('<', 0, link_next_j)
             if link_next_i == -1:
+              print('Could not find next link')
               break
 
             url = links[link_next_i + 1:link_next_j]
