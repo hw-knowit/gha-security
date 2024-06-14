@@ -307,7 +307,7 @@ jobs:
             print(response_header)
             response_header_dict = dict(response.headers)
             print(response_header_dict)
-            links = response_header.get('links', '')
+            links = response.headers.get('Link', '')
             link_next_j = links.find('>; rel="next"')
 
             if link_next_j == -1:
