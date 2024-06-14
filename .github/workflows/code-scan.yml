@@ -307,9 +307,6 @@ jobs:
             links = response.headers.get('Link', '')
             print(type(links))
             print(links)
-            links = json.dumps(links)
-            print(type(links))
-            print(links)
             link_next_j = links.find('>; rel=\"next\"')
 
             if link_next_j == -1:
