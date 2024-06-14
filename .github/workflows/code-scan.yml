@@ -306,14 +306,9 @@ jobs:
                   while True:
                     response_patch = requests.patch(patch_url, headers=headers, json=data_to_send)
                     x_ratelimit_remaining = response_patch.headers.get('x-ratelimit-remaining')
-                    x_ratelimit_reset = response_patch.headers.get('x-ratelimit-reset')
-                    current_time = int(time.time())
-                    reset_time = int(x_ratelimit_reset) - current_time
-                    print(f'Rate limit remaining: {x_ratelimit_remaining}')
-                    print(f'Rate limit reset: {x_ratelimit_reset}')
-                    print(f'Reset time: {reset_time}')
                     
                     if (response_patch.status_code == 403 or response_patch.status_code == 429) and x_ratelimit_remaining == '0':
+                      x_ratelimit_reset = response_patch.headers.get('x-ratelimit-reset')
                       current_time = int(time.time())
                       reset_time = int(x_ratelimit_reset) - current_time
                       
