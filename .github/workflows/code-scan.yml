@@ -7,6 +7,9 @@ on:
           description: 'Token to access the external repository mentioned in the code_scan_config.yml file. Must have read access to the repository.'
           required: false
 
+env:
+  GITHUB_REPOSITORY: ${{ github.repository }}
+
 jobs:
 #  get-repository-languages:
 #      runs-on: ubuntu-latest
@@ -41,7 +44,6 @@ jobs:
 #                echo 'GHA_SECURITY_CODE_SCAN_REPOSITORY_LANGUAGES='$languages >> $GITHUB_ENV
 #            env:
 #              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#              GITHUB_REPOSITORY: ${{ github.repository }}
 
 #  codeql-analysis:
 #      runs-on: ubuntu-latest
@@ -333,7 +335,6 @@ jobs:
           "
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
         
 #  check-for-critical-alerts:
 #    runs-on: ubuntu-latest
@@ -359,7 +360,6 @@ jobs:
 #            fi
 #        env:
 #          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#          GITHUB_REPOSITORY: ${{ github.repository }}
 #      - name: "Create comment on pull request if critical alerts are found"
 #        if: env.GHA_SECURITY_CODE_SCAN_CREATE_PR_COMMENT == 'True'
 #        run: |
@@ -372,4 +372,3 @@ jobs:
 #              :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry:"
 #        env:
 #          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#          GITHUB_REPOSITORY: ${{ github.repository }}
