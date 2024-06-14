@@ -236,11 +236,12 @@ jobs:
           import sys
 
           repository = os.getenv('GITHUB_REPOSITORY')
+          token = os.getenv('GITHUB_TOKEN')
     
           headers = {
           'Accept': 'application/vnd.github+json',
           'X-GitHub-Api-Version': '2022-11-28',
-          'Authorization': 'token {}'.format(os.getenv('GITHUB_TOKEN'))
+          'Authorization': f'token {token}')
           }
 
           allowlist = {}
@@ -280,7 +281,7 @@ jobs:
             except IOError:
               pass
           
-          url = f'https://api.github.com/repos/{repository}/code-scanning/alerts?ref=${{ github.ref }}&per_page=5'
+          url = f'https://api.github.com/repos/{repository}/code-scanning/alerts?ref=${{ github.ref }}&per_page=5&state=open'
           while True:
             response = requests.get(url, headers=headers)
 
@@ -300,9 +301,9 @@ jobs:
                     'dismissed_reason': data.get('reason', ''),
                     'dismissed_comment': data.get('comment', '')
                   }
-                  # Should probably do some error checking here for status != 200
-
                   response_patch = requests.patch(patch_url, headers=headers, json=data_to_send)
+                  print(response_patch.headers)
+                  # Should probably do some error checking here for status != 200
 
             links = response.headers.get('Link', '')
             links = links.strip()
