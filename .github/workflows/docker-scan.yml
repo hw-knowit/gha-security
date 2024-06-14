@@ -7,29 +7,10 @@ on:
                 description: 'Image artifact to scan'
                 type: string
                 required: true
-            local_whitelist:
-                description: 'Name of whitelisting file for Docker scan alerts, located in the same repository as the "caller" workflow. If not placed in the root of the repository, the path must be specified'
-                type: string
-                required: false
-            external_whitelist:
-                description: 'Name of whitelisting file for Docker scan alerts, located in another repository. If not placed in the root of the repository, the path must be specified'
-                type: string
-                required: false
-            external_repository:
-                description: 'Name of the repository where the external whitelist file is located'
-                type: string
-                required: false
         secrets:
             external_repository_token:
-                description: 'Token for the repository where the external whitelist file is located. Must be provided if the external whitelist file is located in a private repository, and given read access to the repository.'
+                description: 'Token to access the external repository mentioned in the code_scan_config.yml file. Must have read access to the repository.'
                 required: false
-
-env:
-  GHA_SECURITY_DOCKER_SCAN_IMAGE_ARTIFACT: ${{ inputs.image_artifact }}
-  GHA_SECURITY_DOCKER_SCAN_LOCAL_WHITELIST: ${{ inputs.local_whitelist }}
-  GHA_SECURITY_DOCKER_SCAN_EXTERNAL_WHITELIST: ${{ inputs.external_whitelist }}
-  GHA_SECURITY_DOCKER_SCAN_EXTERNAL_REPOSITORY: ${{ inputs.external_repository }}
-  GHA_SECURITY_DOCKER_SCAN_EXTERNAL_REPOSITORY_TOKEN: ${{ secrets.external_repository_token }}
 
 jobs:
     docker-scan:
@@ -41,167 +22,184 @@ jobs:
             security-events: write # required for uploading SARIF file to GitHub 
             actions: read #required for uploading SARIF file to GitHub (workflows in private repositories)
         steps:
+        - name: Install dependencies -- REMEMBER TO FIX
+          run: |
+            pip install cerberus
+          shell: bash
         - name: "Checkout repository"
           uses: actions/checkout@v4
         - name: "Download the image artifact"
           uses: actions/download-artifact@v4
           with:
             name: ${{ env.GHA_SECURITY_DOCKER_SCAN_IMAGE_ARTIFACT }}
-        - name: Checkout external whitelist (from public repository)
-          id: checkout-external-whitelist-public
-          if: ${{env.GHA_SECURITY_DOCKER_SCAN_EXTERNAL_WHITELIST != '' && env.GHA_SECURITY_DOCKER_SCAN_EXTERNAL_REPOSITORY != '' && env.GHA_SECURITY_DOCKER_SCAN_EXTERNAL_REPOSITORY_TOKEN == '' }}
-          uses: actions/checkout@v4
-          with:
-            repository: entur/${{ env.GHA_SECURITY_DOCKER_SCAN_EXTERNAL_REPOSITORY }}
-            path: './external_repository'
-            sparse-checkout: ${{ env.GHA_SECURITY_DOCKER_SCAN_EXTERNAL_WHITELIST }}
-            sparse-checkout-cone-mode: false
-        - name: Checkout external whitelist (from private repository)
-          id: checkout-external-whitelist-private
-          if: ${{env.GHA_SECURITY_DOCKER_SCAN_EXTERNAL_WHITELIST != '' && env.GHA_SECURITY_DOCKER_SCAN_EXTERNAL_REPOSITORY != '' && env.GHA_SECURITY_DOCKER_SCAN_EXTERNAL_REPOSITORY_TOKEN != '' }}
-          uses: actions/checkout@v4
-          with:
-            repository: entur/${{ env.GHA_SECURITY_DOCKER_SCAN_EXTERNAL_REPOSITORY }}
-            path: './external_repository'
-            token: ${{ env.GHA_SECURITY_DOCKER_SCAN_EXTERNAL_REPOSITORY_TOKEN }}
-            sparse-checkout: ${{ env.GHA_SECURITY_DOCKER_SCAN_EXTERNAL_WHITELIST }}
-            sparse-checkout-cone-mode: false
-        - name: "Create image whitelist schema file"
-          if: ${{ env.GHA_SECURITY_DOCKER_SCAN_LOCAL_WHITELIST != '' || (steps.checkout-external-whitelist-public.outcome == 'success' || steps.checkout-external-whitelist-private.outcome == 'success') }}
+        - name: "Check if allowlist file exists"
           run: |
-            cat > image_whitelist_schema.yaml << EOF
-            apiVersion: 
-              required: true
-              type: string
-              allowed:
-                - entur.io/v1alpha1
-            kind:
-                required: true
-                type: string
-                allowed:
-                  - DockerScanConfig
-            metadata:
-                required: true
-                type: dict
-                schema:
-                  name:
-                    required: true
-                    type: string
-            spec:
-              required: true
-              type: dict
-              schema:
-                whitelist:
-                  required: true
-                  type: list
-                  schema:
-                    type: dict
-                    schema:
-                      cve:
-                        required: true
-                        type: string
-                      comment:
-                        required: true
-                        type: string
-                      reason:
-                        required: true
-                        type: string
-            EOF
-            echo 'GHA_SECURITY_DOCKER_SCAN_WHITELIST_SCHEMA=image_whitelist_schema.yaml' >> $GITHUB_ENV
-        - name: "Validate local whitelist file against schema"
-          id: validate-local-whitelist
-          if: ${{ env.GHA_SECURITY_DOCKER_SCAN_LOCAL_WHITELIST != '' }}
-          uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
-          with: 
-            schema_path: ${{ env.GHA_SECURITY_DOCKER_SCAN_WHITELIST_SCHEMA }}
-            document_path: ${{ env.GHA_SECURITY_DOCKER_SCAN_LOCAL_WHITELIST }}
-        - name: "Validate external whitelist file against schema"
-          id: validate-external-whitelist
-          if: steps.checkout-external-whitelist-public.outcome == 'success' || steps.checkout-external-whitelist-private.outcome == 'success'
-          uses: navikt/yaml-validator@3ab9bb9633648423b1287ec5e55b7f6c6412e074
-          with: 
-            schema_path: ${{ env.GHA_SECURITY_DOCKER_SCAN_WHITELIST_SCHEMA }}
-            document_path: external_repository/${{ env.GHA_SECURITY_DOCKER_SCAN_EXTERNAL_WHITELIST }}
-        - name: Convert image whitelist content to base64
-          id: convert-whitelist-to-base64
-          if: steps.validate-local-whitelist.outcome == 'success' || steps.validate-external-whitelist.outcome == 'success'
+            python -c "
+            import os
+            import requests
+            import base64
+            import yaml
+
+            external_token = os.getenv('GHA_SECURITY_DOCKER_SCAN_EXTERNAL_REPOSITORY_TOKEN')
+            env_file = os.getenv('GITHUB_ENV')
+
+            external_repository = ''
+            allowlist = False
+            external_allowlist = False
+
+            for file_name in ('docker_scan_config.yml', 'docker_scan_config.yaml'):
+                try:
+                  with open(file_name, 'r') as f:
+                    external_repository = yaml.safe_load(f).get('spec', {}).get('inherit','')
+                    allowlist = True
+
+                  break
+                except IOError:
+                  pass
+            if allowlist == False:
+              print(f'::notice ::Allowlist file not found')
+
+            if external_repository != '':
+              headers = {
+                'Accept': 'application/vnd.github+json',
+                'X-GitHub-Api-Version': '2022-11-28'
+                'Authorization': f'token {external_token}'
+              }
+
+              for file_name in ('docker_scan_config.yml', 'docker_scan_config.yaml'):
+                response = requests.get(f'https://api.github.com/repos/entur/{external_repository}/contents/{file_name}', headers=headers)
+                if response.status_code != 404 and response.status_code != 200:
+                  print(f'::error ::Could not get external allowlist file ({response.status_code} - {response.reason})')
+                  break
+                if response.status_code == 200:
+                  external_allowlist = True
+                  break
+              if external_allowlist == False:
+                print(f'::notice ::External allowlist file not found')
+
+            if external_allowlist:
+              with open('external_docker_scan_config.yml', 'w') as f:
+                f.write(base64.b64decode(response.json().get('content','')).decode())
+
+            with open(env_file, 'a') as f:
+              f.write(f'GHA_SECURITY_DOCKER_SCAN_ALLOWLIST={allowlist}\n')
+              f.write(f'GHA_SECURITY_DOCKER_SCAN_EXTERNAL_ALLOWLIST={external_allowlist}\n')
+            "
+        - name: "Validate allowlist file(s)"
+          id: validate_allowlists
+          if: ${{ env.GHA_SECURITY_DOCKER_SCAN_ALLOWLIST == 'True' }}
+          run: |
+            python -c "
+            import yaml
+            from cerberus import Validator
+            import sys
+            import os
+
+            schema = {
+              'apiVersion': {'type': 'string', 'required': True},
+              'kind': {'type': 'string', 'required': True, 'allowed': ['CodeScanConfig']},
+              'metadata': {
+                  'type': 'dict', 
+                  'required': True,
+                  'schema': {
+                      'name': {'type': 'string', 'required': True}
+                  }
+              },
+              'spec': {
+                  'type': 'dict',
+                  'required': True,
+                  'schema': {
+                      'inherit': {'type': 'string' },
+                      'allowlist': {
+                          'type': 'list',
+                          'minlength': 1,
+                          'schema': {
+                              'type': 'dict',
+                              'schema': {
+                                  'cwe': {'type': 'string', 'required': True},
+                                  'comment': {'type': 'string', 'required': True},
+                                  'reason': {'type': 'string', 'required': True}
+                              }
+                          }
+                      }
+                  }
+              }
+            }
+            v = Validator(schema)
+
+            data = ''
+            for file_name in ('docker_scan_config.yml', 'docker_scan_config.yaml'):
+              try:
+                with open(file_name, 'r') as f:
+                  data = yaml.safe_load(f)
+                break
+              except IOError:
+                pass
+            if data == '':
+                print('::error ::Allowlist file not found')
+                sys.exit(1)
+  
+            if v.validate(data):
+                print('The allowlist file is valid.')
+            else:
+                print(f'::error ::The allowlist file is invalid. Here are the errors: {v.errors}')
+                sys.exit(1)
+                
+            if os.getenv('GHA_SECURITY_DOCKER_SCAN_EXTERNAL_ALLOWLIST') == 'True':  
+              data = ''
+              try:
+                with open('external_docker_scan_config.yml', 'r') as f:
+                  data = yaml.safe_load(f)
+              except IOError:
+                print('::error ::External allowlist file not found')
+                sys.exit(1)
+              if v.validate(data):
+                  print('The external allowlist file is valid.')
+              else:
+                  print(f'::error ::The external allowlist file is invalid. Here are the errors: {v.errors}')
+                  sys.exit(1)
+            "
+        - name: Convert allowlist content to base64
+          id: convert-allowlist-to-base64
+          if: steps.validate_allowlists.outcome == 'success'
           run: |
             python -c "
             import yaml
             import base64
             import os 
 
-            whitelist = {}
+            allowlist = {}
 
-            remote_config = None
             try:
-              with open('external_repository/'+os.getenv('GHA_SECURITY_DOCKER_SCAN_EXTERNAL_WHITELIST'), 'r') as f:
-                remote_config = yaml.load(f, Loader=yaml.SafeLoader)
-              for element in remote_config['spec']['whitelist']:
-                whitelist[element['cve']] = {
-                'comment': element['comment'],
-                'reason': element['reason']
-                }
+              with open('external_docker_scan_config', 'r') as f:
+                remote_config = yaml.safe_load(f)
+
+                for element in remote_config.get('spec', {}).get('allowlist', []):
+                  allowlist[element.get('cve','')] = {
+                    'comment': element.get('comment',''),
+                    'reason': element.get('reason','')
+                  }
             except IOError:
               pass
 
-            local_config = None
-            try:
-              with open(os.getenv('GHA_SECURITY_DOCKER_SCAN_LOCAL_WHITELIST'), 'r') as f:
-                local_config = yaml.load(f, Loader=yaml.SafeLoader)
-              for element in local_config['spec']['whitelist']:
-                whitelist[element['cve']] = {
-                'comment': element['comment'],
-                'reason': element['reason']
-                }
-            except IOError:
-              pass
+            for file_name in ('docker_scan_config.yml', 'docker_scan_config.yaml'):
+              try:
+                with open(file_name, 'r') as f:
+                  local_config = yaml.safe_load(f)
 
-            print(whitelist)
+                  for element in local_config.get('spec', {}).get('allowlist', []):
+                    allowlist[element.get('cve','')] = {
+                      'comment': element.get('comment',''),
+                      'reason': element.get('reason','')
+                    }
+                break
+              except IOError:
+                pass
 
-            grype_whitelisting = {'ignore': [{'vulnerability': vulnerability} for vulnerability in whitelist]}
-            grype_whitelisting_yaml = yaml.dump(grype_whitelisting, indent=2)
-            grype_whitelisting_base64 = base64.b64encode(grype_whitelisting_yaml.encode()).decode()
-            env_file = os.getenv('GITHUB_ENV')
-            with open(env_file, 'a') as f:
-                f.write('GHA_SECURITY_DOCKER_SCAN_WHITELIST_BASE64={}'.format(grype_whitelisting_base64))
+            grype_allowlist = {'ignore': [{'vulnerability': vulnerability} for vulnerability in whitelist]}
+            with open('.grype.yaml', 'w') as f:
+              yaml.dump(grype_allowlist, f)
             "
-        - name:  "Check if .grype.yaml exists"
-          if: steps.convert-whitelist-to-base64.outcome == 'success'
-          run: |
-            if test -f .grype.yaml; then
-              echo 'GHA_SECURITY_DOCKER_SCAN_GRYPE_YAML_EXISTS=true' >> $GITHUB_ENV
-            else
-              echo 'GHA_SECURITY_DOCKER_SCAN_GRYPE_YAML_EXISTS=false' >> $GITHUB_ENV
-            fi
-        - name: "Create .grype.yaml"
-          if: env.GHA_SECURITY_DOCKER_SCAN_GRYPE_YAML_EXISTS == 'false'
-          run: |
-            gh api \
-              --method PUT \
-              -H "Accept: application/vnd.github+json" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              /repos/${{ github.repository }}/contents/.grype.yaml \
-              -f "message=Create .grype.yaml" -f "content=${{ env.GHA_SECURITY_DOCKER_SCAN_WHITELIST_BASE64 }}"
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        - name: "Update .grype.yaml"
-          if: env.GHA_SECURITY_DOCKER_SCAN_GRYPE_YAML_EXISTS == 'true'
-          run: |
-            grype_file="$(gh api \
-              -H "Accept: application/vnd.github+json" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              /repos/${{ github.repository }}/contents/.grype.yaml)"
-            grype_file_sha=$(echo "$grype_file" | jq -r '.sha')
-            gh api \
-              --method PUT \
-              -H "Accept: application/vnd.github+json" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              /repos/${{ github.repository }}/contents/.grype.yaml \
-              -f "message=Update .grype.yaml" -f "content=${{ env.GHA_SECURITY_DOCKER_SCAN_WHITELIST_BASE64 }}" \
-              -f "sha=$grype_file_sha"
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         - name: "Anchore Grype Scan"
           id: anchore-scan
           uses: anchore/scan-action@3343887d815d7b07465f6fdcd395bd66508d486a
