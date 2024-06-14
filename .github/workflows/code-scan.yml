@@ -258,7 +258,7 @@ jobs:
                 cwe = element.get('cwe', '')
                 cwe_tag = f'external/cwe/{cwe}'
                 allowlist[cwe_tag] = {
-                  'comment': element.get('comment', '')
+                  'comment': element.get('comment', ''),
                   'reason': reason_mapping[element.get('reason', '')]
               } 
           except IOError:
@@ -267,16 +267,15 @@ jobs:
           for file_name in ('code_scan_config.yml', 'code_scan_config.yaml'):
             try: 
               with open(file_name, 'r') as f:
-                local_config = yaml.safe_load(f)
+                config = yaml.safe_load(f)
                 
-                for element in local_config.get('spec', {}).get('allowlist', []):
+                for element in config.get('spec', {}).get('allowlist', []):
                   cwe = element.get('cwe', '')
                   cwe_tag = f'external/cwe/{cwe}'
                   allowlist[cwe_tag] = {
-                    'comment': element.get('comment', '')
+                    'comment': element.get('comment', ''),
                     'reason': reason_mapping[element.get('reason', '')]
                   }
-                
               break
             except IOError:
               pass
