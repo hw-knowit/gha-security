@@ -290,6 +290,7 @@ jobs:
 
             alerts = response.json()
             for alert in alerts:
+              print(alert)
               for cwe_tag, data in allowlist.items():
                 if cwe_tag in alert.get('rule', {}).get('tags', []):
                   alert_number = alert.get('number', '')
@@ -303,10 +304,6 @@ jobs:
 
                   response_patch = requests.patch(patch_url, headers=headers, json=data_to_send)
 
-            response_header = json.dumps(dict(response.headers))
-            print(response_header)
-            response_header_dict = dict(response.headers)
-            print(response_header_dict)
             links = response.headers.get('Link', '')
             link_next_j = links.find('>; rel="next"')
 
