@@ -302,20 +302,25 @@ jobs:
                     'dismissed_reason': data.get('reason', ''),
                     'dismissed_comment': data.get('comment', '')
                   }
-                  response_patch = requests.patch(patch_url, headers=headers, json=data_to_send)
-                  response_patch_headers = response_patch.headers
-                  print(f'{response_patch_headers=}')
-                  x_ratelimit_remaining = response_patch_headers.get('x-ratelimit-remaining')
-                  print(f'{x_ratelimit_remaining=}')
-                  x_ratelimit_reset = response_patch_headers.get('x-ratelimit-reset')
-                  print(f'{x_ratelimit_reset=}')
 
-                  current_time = int(time.time())
-                  print(f'{current_time=}')
-                  reset_time = int(x_ratelimit_reset) - current_time
-                  print(f'{reset_time=}')
+                  while True:
+                    response_patch = requests.patch(patch_url, headers=headers, json=data_to_send)
+                    x_ratelimit_remaining = response_patch.headers.get('x-ratelimit-remaining')
+                    x_ratelimit_reset = response_patch.headers.get('x-ratelimit-reset')
+                    
+                    # if (response_patch.status_code == 403 or response_patch.status_code == 429) and x_ratelimit_remaining == '0':
+                    current_time = int(time.time())
+                    print(f'{current_time=}')
+                    reset_time = int(x_ratelimit_reset) - current_time
+                    
+                    time.sleep(reset_time)
+                    current_time = int(time.time())
+                    print(f'{current_time=}')
 
-                  # Should probably do some error checking here for status != 200
+                    # else:
+                    break
+                    
+                    # Should probably do some error checking here for status != 200
 
             links = response.headers.get('Link', '')
             links = links.strip()
