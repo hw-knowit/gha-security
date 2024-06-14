@@ -131,7 +131,7 @@ jobs:
               response = requests.get(f'https://api.github.com/repos/entur/{external_repository}/contents/{file_name}', headers=headers)
               print(response)
               if response.status_code != 404 or response.status_code != 200:
-                print(f'::error ::Could not get external allowlist file ({response.status_code} - {response.description})')
+                print(f'::error ::Could not get external allowlist file ({response.status_code} - {response.reason})')
                 break
               if response.status_code == 200:
                 external_allowlist = True
@@ -288,7 +288,7 @@ jobs:
             response = requests.get(url, headers=headers)
 
             if response.status_code != 200:
-              print(f'Could not get code scan alerts ({response.status_code} - {response.description})')
+              print(f'Could not get code scan alerts ({response.status_code} - {response.reason})')
               sys.exit(1)
 
             alerts = response.json()
