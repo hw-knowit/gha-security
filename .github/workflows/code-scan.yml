@@ -150,10 +150,6 @@ jobs:
           "   
         env:
           GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY_TOKEN: ${{ secrets.external_repository_token }}
-      - name: "Print variables - REMEMBER TO DELETE THIS STEP"
-        run: |
-          echo ${{ env.GHA_SECURITY_CODE_SCAN_ALLOWLIST }}
-          echo ${{ env.GHA_SECURITY_CODE_SCAN_EXTERNAL_ALLOWLIST }}
       - name: "Validate allowlist file(s)"
         id: validate_allowlists
         if: ${{ env.GHA_SECURITY_CODE_SCAN_ALLOWLIST == 'True' }}
