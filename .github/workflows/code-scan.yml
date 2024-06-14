@@ -305,6 +305,7 @@ jobs:
                   response_patch = requests.patch(patch_url, headers=headers, json=data_to_send)
 
             links = response.headers.get('Link', '')
+            print(links)
             link_next_j = links.find('>; rel="next"')
 
             if link_next_j == -1:
