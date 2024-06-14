@@ -312,7 +312,7 @@ jobs:
 
                   current_time = datetime.now(timezone.utc)
                   print(f'{current_time=}')
-                  reset_time = x-ratelimit-reset - current_time
+                  reset_time = x_ratelimit_reset - current_time
                   print(f'{reset_time=}')
 
                   # Should probably do some error checking here for status != 200
