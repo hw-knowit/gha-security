@@ -304,6 +304,9 @@ jobs:
                   response_patch = requests.patch(patch_url, headers=headers, json=data_to_send)
 
             response_header = json.dumps(dict(response.headers))
+            print(response_header)
+            response_header_dict = dict(response.headers)
+            print(response_header_dict)
             links = response_header.get('links', '')
             link_next_j = links.find('>; rel="next"')
 
