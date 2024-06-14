@@ -305,10 +305,10 @@ jobs:
                   response_patch = requests.patch(patch_url, headers=headers, json=data_to_send)
                   response_patch_headers = response_patch.headers
                   print(f'{response_patch_headers=}')
-                  x-ratelimit-remaining = response_patch_headers.get('x-ratelimit-remaining')
-                  print(f'{x-ratelimit-remaining=}')
-                  x-ratelimit-reset = response_patch_headers.get('x-ratelimit-reset')
-                  print(f'{x-ratelimit-reset=}')
+                  x_ratelimit_remaining = response_patch_headers.get('x-ratelimit-remaining')
+                  print(f'{x_ratelimit_remaining=}')
+                  x_ratelimit_reset = response_patch_headers.get('x-ratelimit-reset')
+                  print(f'{x_ratelimit_reset=}')
 
                   current_time = datetime.now(timezone.utc)
                   print(f'{current_time=}')
