@@ -292,7 +292,8 @@ jobs:
             for alert in alerts:
               for cwe_tag, data in allowlist.items():
                 if cwe_tag in alert.get('rule', {}).get('tags', []):
-                  patch_url = f'https://api.github.com/repos/{repository}/code-scanning/alerts/{alert.get('number', '')}'
+                  alert_number = alert.get('number', '')
+                  patch_url = f'https://api.github.com/repos/{repository}/code-scanning/alerts/{alert_number}'
                   data_to_send = {
                     'state': 'dismissed',
                     'dismissed_reason': data.get('reason', ''),
