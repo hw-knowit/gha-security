@@ -130,7 +130,7 @@ jobs:
             for file_name in ('code_scan_config.yml', 'code_scan_config.yaml'):
               response = requests.get(f'https://api.github.com/repos/entur/{external_repository}/contents/{file_name}', headers=headers)
               print(response)
-              if response.status_code != 404 or response.status_code != 200:
+              if response.status_code != 404 and response.status_code != 200:
                 print(f'::error ::Could not get external allowlist file ({response.status_code} - {response.reason})')
                 break
               if response.status_code == 200:
