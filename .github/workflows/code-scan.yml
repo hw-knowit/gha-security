@@ -8,40 +8,40 @@ on:
           required: false
 
 jobs:
-  get-repository-languages:
-      runs-on: ubuntu-latest
-      outputs: 
-          repository_languages: ${{ env.GHA_SECURITY_CODE_SCAN_REPOSITORY_LANGUAGES }} 
-      steps:
-          - name: "Get repository languages"
-            id: get-repository-languages
-            run: |
-                languages="$(gh api /repos/${{ env.GITHUB_REPOSITORY }}/languages | \
-                  jq 'keys 
-                      | .[] as $langs
-                      | {
-                          "C":"c",
-                          "C++":"cpp",
-                          "C#":"csharp",
-                          "Go":"go",
-                          "Java":"java",
-                          "JavaScript":"javascript-typescript",
-                          "TypeScript":"javascript-typescript",
-                          "Kotlin":"kotlin",
-                          "Python":"python",
-                          "Ruby":"ruby",
-                          "Swift":"swift"
-                        } as $supported 
-                      | $langs         # operate on all the languages
-                      | $supported[.]  # and lookup their values, null if not found
-                      | select(.)      # select removes null values
-                  ' | \
-                  jq --slurp --compact-output 'unique')" # make a oneliner, and remove duplicates
-          
-                echo 'GHA_SECURITY_CODE_SCAN_REPOSITORY_LANGUAGES='$languages >> $GITHUB_ENV
-            env:
-              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              GITHUB_REPOSITORY: ${{ github.repository }}
+#  get-repository-languages:
+#      runs-on: ubuntu-latest
+#      outputs: 
+#          repository_languages: ${{ env.GHA_SECURITY_CODE_SCAN_REPOSITORY_LANGUAGES }} 
+#      steps:
+#          - name: "Get repository languages"
+#            id: get-repository-languages
+#            run: |
+#                languages="$(gh api /repos/${{ env.GITHUB_REPOSITORY }}/languages | \
+#                  jq 'keys 
+#                      | .[] as $langs
+#                      | {
+#                          "C":"c",
+#                          "C++":"cpp",
+#                          "C#":"csharp",
+#                          "Go":"go",
+#                          "Java":"java",
+#                          "JavaScript":"javascript-typescript",
+#                          "TypeScript":"javascript-typescript",
+#                          "Kotlin":"kotlin",
+#                          "Python":"python",
+#                          "Ruby":"ruby",
+#                          "Swift":"swift"
+#                        } as $supported 
+#                      | $langs         # operate on all the languages
+#                      | $supported[.]  # and lookup their values, null if not found
+#                      | select(.)      # select removes null values
+#                  ' | \
+#                  jq --slurp --compact-output 'unique')" # make a oneliner, and remove duplicates
+#          
+#                echo 'GHA_SECURITY_CODE_SCAN_REPOSITORY_LANGUAGES='$languages >> $GITHUB_ENV
+#            env:
+#              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#              GITHUB_REPOSITORY: ${{ github.repository }}
 
 #  codeql-analysis:
 #      runs-on: ubuntu-latest
@@ -225,7 +225,7 @@ jobs:
                 print(f'::error ::The external allowlist file is invalid. Here are the errors: {v.errors}')
                 sys.exit(1)
           "
-      - name: "Allowlist code scan alerts"
+      - name: "Allowlist code scan alerts - REMEMBER TO FIX"
         if: steps.validate_allowlists.outcome == 'success'
         run: |
           python -c "
@@ -282,7 +282,7 @@ jobs:
             except IOError:
               pass
           
-          url = f'https://api.github.com/repos/{repository}/code-scanning/alerts?ref=${{ github.ref }}&per_page=5&state=open'
+          url = f'https://api.github.com/repos/{repository}/code-scanning/alerts?ref=${{ github.ref }}&per_page=100&state=open'
           while True:
             response = requests.get(url, headers=headers)
 
@@ -319,17 +319,13 @@ jobs:
                     
             links = response.headers.get('Link', '')
             links = links.strip()
-            print(type(links))
-            print(links)
             link_next_j = links.find('>; rel="next"')
 
             if link_next_j == -1:
-              print('No more pages')
               break
 
             link_next_i = links.rfind('<', 0, link_next_j)
             if link_next_i == -1:
-              print('Could not find next link')
               break
 
             url = links[link_next_i + 1:link_next_j]
