@@ -310,7 +310,7 @@ jobs:
             links = json.dumps(links)
             print(type(links))
             print(links)
-            link_next_j = links.find('>; rel="next"')
+            link_next_j = links.find('>; rel=\"next\"')
 
             if link_next_j == -1:
               print('No more pages')
