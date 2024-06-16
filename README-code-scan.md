@@ -17,7 +17,7 @@ jobs:
 
 |                                           INPUT                                           |  TYPE  | REQUIRED | DEFAULT |                   DESCRIPTION                   |
 |-------------------------------------------------------------------------------------------|--------|----------|---------|-------------------------------------------------|
-| <a name="input_code_whitelist"></a>[code_whitelist](#input_code_whitelist) | string |  false   |         | Whitelisting file for code scanning <br>alerts  |
+| <a name="input_code_allowlist"></a>[code_allowlist](#input_code_allowlist) | string |  false   |         | allowlisting file for code scanning <br>alerts  |
 
 <!-- AUTO-DOC-INPUT:END -->
 
@@ -40,6 +40,8 @@ on:
         branches:
             - main
             - master
+    schedule:
+        - cron: "0 3 * * MON"
   
 jobs:
     code-scan:
@@ -47,60 +49,45 @@ jobs:
         uses: entur/gha-security/.github/workflows/code-scan.yml@v0.2.0
 ```
 
-## Whitelisting vulnerabilities
-The reusable workflow uses [CodeQL](https://codeql.github.com/) to scan the codebase for vulnerabilities.  Any discovered vulnerabilities will be published to the _Security_ tab of the repository, under the _Code Scanning_ section. If you believe that a found vulnerability is a false positive or otherwise not relevant, you can either manually dimiss the alert, or create whitelist files (YAML-file) that dismisses all alerts that matches a vulnerability ID.
+## Allowlisting vulnerabilities
+The reusable workflow uses [CodeQL](https://codeql.github.com/) to scan the codebase for vulnerabilities. Any discovered vulnerabilities will be published to the _Security_ tab of the repository, under the _Code Scanning_ section. If you believe that a found vulnerability is a false positive or otherwise not relevant, you can either manually dimiss the alert, or create a allowlist file (YAML-file) that dismisses all alerts that matches a vulnerability ID. 
 
-NB! If the scan is performed on a pull request, remember to filter by pull request number and not the branch name. 
+_NB! If the scan is performed on a pull request, remember to filter the Code Scanning results by pull request number and not the branch name._
 
-There are two types of whitelisting files that can be used; a local file (placed in the repository) and an external file (placed in a different repository). The local file is prioritized over the external file.
+There are two types of allowlist files that can be used; a local allowlist (placed in the repository) and an external allowlist (placed in a different repository). The local allowlist is prioritized over the external allowlist.
 
-### Local whitelisting
-To use local whitelisting, create a file in the repository and place it preferably in the root of the repository. The file must be a YAML-file and follow the format [mentioned below](#schema-for-whitelist-file).
+### Local allowlisting
+To use a local allowlist, create a YAML file in the repository named, either `code_scan_config.yml` or `code_scan_config.yaml`, and place it in the root of the repository. If you create both files, the `code_scan_config.yaml` file will be ignored. The file must follow the format [mentioned below](#schema-for-allowlist-file).
 
-#### Example of workflow using local whitelisting
+### External allowlisting
+To use an external allowlist create a YAML file in a different repository and place it in the root of the repository. The file must be named either `code_scan_config.yml` or `code_scan_config.yaml`, and follow the format [mentioned below](#schema-for-allowlist-file). If you create both files, the `code_scan_config.yaml` file will be ignored. To be able to use the external allowlist, you must have a local allowlist file in the repository as well. The repository where the external allowlist file is placed must be referenced in the local allowlist file, under the 'inherit' field. It is important to note that you will also have to use a fine-grained access token to access the external allowlist file. The token must be added as a secret to the repository where the workflow is run, and permissions must include "contents" read access to the repository where the external allowlist file is placed. You can find documentation on how to create a fine-grained access token [here](https://docs.github.com/en/enterprise-cloud@latest/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-fine-grained-personal-access-token), and how to add it as a secret to your repository [here](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository). See the example below on how to use a repository secret, named `EXTERNAL_REPOSITORY_TOKEN`, in the workflow.
+  
 ```yaml
 jobs:
   code-scan:
-    name: Code Scan
     uses: entur/gha-security/.github/workflows/code-scan.yml@v0.2.0
     with:
-      local_whitelist: "code_whitelist.yaml"
-```
-
-### External whitelisting
-To use external whitelisting, create a file in a different repository and place it preferably in the root of the repository. The file must be a YAML-file and follow the format [mentioned below](#schema-for-whitelist-file). It is important to note that if the repository where the whitelist file is placed is private or internal, you must create a fine-grained access token with permission set "Contents" repository permissions (read) and add it as a secret in the repository where the scan is performed. 
-You can find documentation on how to create a fine-grained access token [here](https://docs.github.com/en/enterprise-cloud@latest/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-fine-grained-personal-access-token), and how to add it as a secret to your repository [here](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository). 
-
-#### Example of workflow using external whitelisting
-```yaml
-jobs:
-  code-scan:
-    name: Code Scan
-    uses: entur/gha-security/.github/workflows/code-scan.yml@v0.2.0
-    with:
-      external_whitelist: "https://raw.githubusercontent.com/entur/whitelist-repo/main/code_whitelist.yaml"
-      external_repository: "external-repo"
     secrets:
-      external_repository_token: ${{ secrets.EXTERNAL_REPOSITORY_TOKEN }}
+        external_repository_token: ${{ secrets.EXTERNAL_REPOSITORY_TOKEN }}
 ```
 
-
-### Schema for whitelist file
+### Schema for allowlist file
 ```yaml
-apiVersion: entur.io/v1alpha1
+apiVersion: entur.io/v1alpha1 
 kind: CodeScanConfig
 metadata:
   name: {project-name-config}
 spec:
-  whitelist:
+  inherit: {repository where the external allowlist file is placed}
+  allowlist:
   - cwe: {cwe-id}
     comment: {comment explaining why the vulnerability is dismissed}
     reason: {reason for dismissing the vulnerability}
 ```
-The metadata field should be the name of the project, the `cwe` field should be the CWE-ID of the vulnerability you want to dismiss, the `comment` field should be a comment explaining why the vulnerability is dismissed, and the `reason` field should be one of the following:
-- "false_positive"
-- "wont_fix"
-- "test"
+The `name` field under the metadata section should be the name of the project. The `inherit` field under the spec section should be the repository where the external allowlist file is placed (optinal field, only used when using an external allowlist file). The `allowlist` field should be a list of vulnerabilities that you want to dismiss. For each vulnerability you want to dismiss, you should add a new item to the list. For each item in the list, you should add the following fields: `cwe`, `comment`, and `reason`. The `cwe` field should be the CWE-ID of the vulnerability you want to dismiss, the `comment` field should be a comment explaining why the vulnerability is dismissed, and the `reason` field should be one of the following:
+- `false_positive`
+- `wont_fix`
+- `test`
 
 #### Example
 
@@ -110,7 +97,7 @@ kind: CodeScanConfig
 metadata:
   name: my-project-config
 spec:
-  whitelist:
+  allowlist:
   - cwe: "cwe-080"
     comment: "This alert is a false positive"
     reason: "false_positive"
