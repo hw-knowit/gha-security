@@ -91,7 +91,7 @@ jobs:
       steps:
       - name: Install dependencies -- REMEMBER TO FIX
         run: |
-          pip install git+https://github.com/pyeve/cerberus.git@eeecd5b8610b3507294b2422c2c2610ed8e863fa
+          pip install cerberus
         shell: bash
       - name: "Checkout repository"
         uses: actions/checkout@v4
@@ -322,16 +322,16 @@ jobs:
 
             link_next_j = links.find('rel="next"') 
             print(f'Link next 1: {link_next_j}') 
-                                
+
             link_next_j = links.find(' rel="next"') 
             print(f'Link next 2: {link_next_j}') 
-                                
+
             link_next_j = links.find('; rel="next"') 
             print(f'Link next 3: {link_next_j}') 
-                                
+
             link_next_j = links.find('rel=\"next\"') 
             print(f'Link next 4: {link_next_j}') 
-                                
+
             link_next_j = links.find('<; rel=') 
             print(f'Link next 5: {link_next_j}') 
             break
