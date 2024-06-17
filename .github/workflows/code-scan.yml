@@ -317,9 +317,10 @@ jobs:
                       break
                     
             links = response.headers.get('Link', '')
-            links = links.strip()
+            print(f'Links: {links}')
             link_next_j = links.find('>; rel="next"')
-
+            print(f'Link next j: {link_next_j}')
+            
             if link_next_j == -1:
               break
 
