@@ -199,7 +199,7 @@ jobs:
               except IOError:
                 pass
 
-            grype_allowlist = {'ignore': [{'vulnerability': vulnerability} for vulnerability in whitelist]}
+            grype_allowlist = {'ignore': [{'vulnerability': vulnerability} for vulnerability in allowlist]}
             with open('.grype.yaml', 'w') as f:
               yaml.dump(grype_allowlist, f)
             "
