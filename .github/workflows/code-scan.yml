@@ -286,7 +286,7 @@ jobs:
             response = requests.get(url, headers=headers)
 
             if response.status_code != 200:
-              print(f'Could not get code scan alerts ({response.status_code} - {response.reason})')
+              print(f'::error ::Could not get code scan alerts ({response.status_code} - {response.reason})')
               sys.exit(1)
 
             alerts = response.json()
@@ -316,17 +316,13 @@ jobs:
                       break
                     
             links = response.headers.get('Link', '')
-            print(f'Links: {links}')
             link_next_j = links.find('>; rel=\"next\"')
-            print(f'Link next j: {link_next_j}')
 
             if link_next_j == -1:
               break
 
             link_next_i = links.rfind('<', 0, link_next_j)
-            print(f'Link next i: {link_next_i}')
             if link_next_i == -1:
-              print('Could not find link next')
               break
 
             url = links[link_next_i + 1:link_next_j]
