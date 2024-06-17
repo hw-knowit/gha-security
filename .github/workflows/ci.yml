@@ -7,11 +7,11 @@ jobs:
     update-code_scan-doc:
         uses: entur/gha-meta/.github/workflows/auto-doc.yml@v1.0.0
         with: 
-            workflow_file: .github/workflows/code_scan.yml
+            workflow_file: .github/workflows/code-scan.yml
             readme_file: README-code_scan.md
 
     update-docker-scan-doc:
         uses: entur/gha-meta/.github/workflows/auto-doc.yml@v1.0.0
         with: 
-            workflow_file: .github/workflows/docker_image_scan.yml
+            workflow_file: .github/workflows/docker-scan.yml
             readme_file: README-docker_scan.md
