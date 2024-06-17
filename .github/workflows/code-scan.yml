@@ -317,7 +317,7 @@ jobs:
                     
             links = str(response.headers.get('Link', ''))
             print(f'Links: {links}')
-            link_next_j = links.find('>; rel="next"')
+            link_next_j = links.find('>; rel=\"next\"')
             print(f'Link next j: {link_next_j}')
 
             link_next_j = links.find('rel="next"') 
