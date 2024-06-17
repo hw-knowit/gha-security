@@ -14,11 +14,7 @@ jobs:
 ## Inputs
 
 <!-- AUTO-DOC-INPUT:START - Do not remove or modify this section -->
-
-|                                           INPUT                                           |  TYPE  | REQUIRED | DEFAULT |                   DESCRIPTION                   |
-|-------------------------------------------------------------------------------------------|--------|----------|---------|-------------------------------------------------|
-| <a name="input_code_allowlist"></a>[code_allowlist](#input_code_allowlist) | string |  false   |         | allowlisting file for code scanning <br>alerts  |
-
+No inputs.
 <!-- AUTO-DOC-INPUT:END -->
 
 ## Golden Path
