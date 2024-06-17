@@ -119,7 +119,7 @@ jobs:
                           'schema': {
                               'type': 'dict',
                               'schema': {
-                                  'cwe': {'type': 'string', 'required': True},
+                                  'cve': {'type': 'string', 'required': True},
                                   'comment': {'type': 'string', 'required': True},
                                   'reason': {'type': 'string', 'required': True}
                               }
