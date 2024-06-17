@@ -9,7 +9,7 @@ on:
                 required: true
         secrets:
             external_repository_token:
-                description: 'Token to access the external repository mentioned in the code_scan_config.yml file. Must have read access to the repository.'
+                description: 'Token to access the external repository mentioned in the docker_scan_config.yml file. Must have read access to the repository.'
                 required: false
 
 env:
@@ -100,7 +100,7 @@ jobs:
 
             schema = {
               'apiVersion': {'type': 'string', 'required': True},
-              'kind': {'type': 'string', 'required': True, 'allowed': ['CodeScanConfig']},
+              'kind': {'type': 'string', 'required': True, 'allowed': ['DockerScanConfig']},
               'metadata': {
                   'type': 'dict', 
                   'required': True,
