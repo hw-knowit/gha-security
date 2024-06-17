@@ -1,0 +1,232 @@
+name: 'Entur/Security/Docker Scan'
+
+on:
+    workflow_call:
+        inputs:
+            image_artifact:
+                description: 'Image artifact to scan'
+                type: string
+                required: true
+        secrets:
+            external_repository_token:
+                description: 'Token to access the external repository mentioned in the docker_scan_config.yml file. Must have read access to the repository.'
+                required: false
+
+env:
+  GHA_SECURITY_DOCKER_SCAN_IMAGE_ARTIFACT: ${{ inputs.image_artifact }}
+
+jobs:
+    docker-scan:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write # required for checking out the repository and creating files
+            issues: write # required for creating issues, and/or adding issue comments
+            pull-requests: write # required for creating comments on pull requests
+            security-events: write # required for uploading SARIF file to GitHub 
+            actions: read #required for uploading SARIF file to GitHub (workflows in private repositories)
+        steps:
+        - name: Install dependencies -- REMEMBER TO FIX
+          run: |
+            pip install cerberus
+          shell: bash
+        - name: "Checkout repository"
+          uses: actions/checkout@v4
+        - name: "Download the image artifact"
+          uses: actions/download-artifact@v4
+          with:
+            name: ${{ env.GHA_SECURITY_DOCKER_SCAN_IMAGE_ARTIFACT }}
+        - name: "Check if allowlist file exists"
+          run: |
+            python -c "
+            import os
+            import requests
+            import base64
+            import yaml
+
+            external_token = os.getenv('GHA_SECURITY_DOCKER_SCAN_EXTERNAL_REPOSITORY_TOKEN')
+            env_file = os.getenv('GITHUB_ENV')
+
+            external_repository = ''
+            allowlist = False
+            external_allowlist = False
+
+            for file_name in ('docker_scan_config.yml', 'docker_scan_config.yaml'):
+                try:
+                  with open(file_name, 'r') as f:
+                    external_repository = yaml.safe_load(f).get('spec', {}).get('inherit','')
+                    allowlist = True
+
+                  break
+                except IOError:
+                  pass
+            if allowlist == False:
+              print(f'::notice ::Allowlist file not found')
+
+            if external_repository != '':
+              headers = {
+                'Accept': 'application/vnd.github+json',
+                'X-GitHub-Api-Version': '2022-11-28',
+                'Authorization': f'token {external_token}'
+              }
+
+              for file_name in ('docker_scan_config.yml', 'docker_scan_config.yaml'):
+                response = requests.get(f'https://api.github.com/repos/entur/{external_repository}/contents/{file_name}', headers=headers)
+                if response.status_code != 404 and response.status_code != 200:
+                  print(f'::error ::Could not get external allowlist file ({response.status_code} - {response.reason})')
+                  break
+                if response.status_code == 200:
+                  external_allowlist = True
+                  break
+              if external_allowlist == False:
+                print(f'::notice ::External allowlist file not found')
+
+            if external_allowlist:
+              with open('external_docker_scan_config.yml', 'w') as f:
+                f.write(base64.b64decode(response.json().get('content','')).decode())
+
+            with open(env_file, 'a') as f:
+              f.write(f'GHA_SECURITY_DOCKER_SCAN_ALLOWLIST={allowlist}\n')
+              f.write(f'GHA_SECURITY_DOCKER_SCAN_EXTERNAL_ALLOWLIST={external_allowlist}\n')
+            "
+        - name: "Validate allowlist file(s)"
+          id: validate_allowlists
+          if: ${{ env.GHA_SECURITY_DOCKER_SCAN_ALLOWLIST == 'True' }}
+          run: |
+            python -c "
+            import yaml
+            from cerberus import Validator
+            import sys
+            import os
+
+            schema = {
+              'apiVersion': {'type': 'string', 'required': True},
+              'kind': {'type': 'string', 'required': True, 'allowed': ['DockerScanConfig']},
+              'metadata': {
+                  'type': 'dict', 
+                  'required': True,
+                  'schema': {
+                      'name': {'type': 'string', 'required': True}
+                  }
+              },
+              'spec': {
+                  'type': 'dict',
+                  'required': True,
+                  'schema': {
+                      'inherit': {'type': 'string' },
+                      'allowlist': {
+                          'type': 'list',
+                          'minlength': 1,
+                          'schema': {
+                              'type': 'dict',
+                              'schema': {
+                                  'cve': {'type': 'string', 'required': True},
+                                  'comment': {'type': 'string', 'required': True},
+                                  'reason': {'type': 'string', 'required': True}
+                              }
+                          }
+                      }
+                  }
+              }
+            }
+            v = Validator(schema)
+
+            data = ''
+            for file_name in ('docker_scan_config.yml', 'docker_scan_config.yaml'):
+              try:
+                with open(file_name, 'r') as f:
+                  data = yaml.safe_load(f)
+                break
+              except IOError:
+                pass
+            if data == '':
+                print('::error ::Allowlist file not found')
+                sys.exit(1)
+  
+            if v.validate(data):
+                print('The allowlist file is valid.')
+            else:
+                print(f'::error ::The allowlist file is invalid. Here are the errors: {v.errors}')
+                sys.exit(1)
+                
+            if os.getenv('GHA_SECURITY_DOCKER_SCAN_EXTERNAL_ALLOWLIST') == 'True':  
+              data = ''
+              try:
+                with open('external_docker_scan_config.yml', 'r') as f:
+                  data = yaml.safe_load(f)
+              except IOError:
+                print('::error ::External allowlist file not found')
+                sys.exit(1)
+              if v.validate(data):
+                  print('The external allowlist file is valid.')
+              else:
+                  print(f'::error ::The external allowlist file is invalid. Here are the errors: {v.errors}')
+                  sys.exit(1)
+            "
+        - name: Convert allowlist content to base64
+          id: convert-allowlist-to-base64
+          if: steps.validate_allowlists.outcome == 'success'
+          run: |
+            python -c "
+            import yaml
+            import base64
+            import os 
+
+            allowlist = {}
+
+            try:
+              with open('external_docker_scan_config', 'r') as f:
+                remote_config = yaml.safe_load(f)
+
+                for element in remote_config.get('spec', {}).get('allowlist', []):
+                  allowlist[element.get('cve','')] = {
+                    'comment': element.get('comment',''),
+                    'reason': element.get('reason','')
+                  }
+            except IOError:
+              pass
+
+            for file_name in ('docker_scan_config.yml', 'docker_scan_config.yaml'):
+              try:
+                with open(file_name, 'r') as f:
+                  local_config = yaml.safe_load(f)
+
+                  for element in local_config.get('spec', {}).get('allowlist', []):
+                    allowlist[element.get('cve','')] = {
+                      'comment': element.get('comment',''),
+                      'reason': element.get('reason','')
+                    }
+                break
+              except IOError:
+                pass
+
+            grype_allowlist = {'ignore': [{'vulnerability': vulnerability} for vulnerability in allowlist]}
+            with open('.grype.yaml', 'w') as f:
+              yaml.dump(grype_allowlist, f)
+            "
+        - name: "Anchore Grype Scan"
+          id: anchore-scan
+          uses: anchore/scan-action@3343887d815d7b07465f6fdcd395bd66508d486a
+          with: 
+            image: ${{ inputs.image_artifact }}.tar
+            by-cve: true
+            fail-build: false
+            severity-cutoff: critical
+        - name: "Upload vulnerability report"
+          id: upload-vulnerability-report
+          uses: github/codeql-action/upload-sarif@v3
+          with: 
+            sarif_file: ${{ steps.anchore-scan.outputs.sarif }}
+            category: 'anchore-grype-scan'
+        - name: "Create comment on pull request if critical vulnerabilities found"
+          if: always() && (steps.anchore-scan.outcome == 'failure') && (steps.upload-vulnerability-report.outcome == 'success') && (github.event_name == 'pull_request')
+          run: |
+            PR_NUMBER=${{ github.event.pull_request.number }}
+            REPOSITORY=${{ github.repository }}
+            gh api /repos/$REPOSITORY/issues/$PR_NUMBER/comments \
+                -H "Accept: application/vnd.github.v3+json" \
+                --field "body=:no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: 
+                Anchore Grype scan found critical vulnerabilities in the image artifact. Please address these vulnerabilities.
+                The scan results can be found [here](https://github.com/$REPOSITORY/security/code-scanning?query=is%3Aopen+pr%3A$PR_NUMBER)
+                :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry:"
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

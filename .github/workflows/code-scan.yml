@@ -1,0 +1,372 @@
+name: 'Entur/Security/Code Scan'
+
+on:
+    workflow_call:  
+      secrets: 
+        external_repository_token:
+          description: 'Token to access the external repository mentioned in the code_scan_config.yml file. Must have read access to the repository.'
+          required: false
+
+env:
+  GITHUB_REPOSITORY: ${{ github.repository }}
+
+jobs:
+  get-repository-languages:
+      runs-on: ubuntu-latest
+      outputs: 
+          repository_languages: ${{ env.GHA_SECURITY_CODE_SCAN_REPOSITORY_LANGUAGES }} 
+      steps:
+          - name: "Get repository languages"
+            id: get-repository-languages
+            run: |
+                languages="$(gh api /repos/${{ env.GITHUB_REPOSITORY }}/languages | \
+                  jq 'keys 
+                      | .[] as $langs
+                      | {
+                          "C":"c",
+                          "C++":"cpp",
+                          "C#":"csharp",
+                          "Go":"go",
+                          "Java":"java",
+                          "JavaScript":"javascript-typescript",
+                          "TypeScript":"javascript-typescript",
+                          "Kotlin":"kotlin",
+                          "Python":"python",
+                          "Ruby":"ruby",
+                          "Swift":"swift"
+                        } as $supported 
+                      | $langs         # operate on all the languages
+                      | $supported[.]  # and lookup their values, null if not found
+                      | select(.)      # select removes null values
+                  ' | \
+                  jq --slurp --compact-output 'unique')" # make a oneliner, and remove duplicates
+          
+                echo 'GHA_SECURITY_CODE_SCAN_REPOSITORY_LANGUAGES='$languages >> $GITHUB_ENV
+            env:
+              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  codeql-analysis:
+      runs-on: ubuntu-latest
+      needs: get-repository-languages
+      permissions:
+          # CodeQL - required for all workflows
+          security-events: write
+
+          # CodeQL - only required for workflows in private repositories
+          actions: read
+          contents: read
+      strategy:
+          fail-fast: false
+          matrix:
+              language: ${{fromJson(needs.get-repository-languages.outputs.repository_languages)}}
+      steps:
+          - name: "Checkout repository"
+            uses: actions/checkout@v4
+          - name: "Initialize CodeQL for Java"
+            if: matrix.language == 'java'
+            uses: github/codeql-action/init@v3
+            with:
+              languages: ${{ matrix.language }}
+              build-mode: none
+          - name: "Initialize CodeQL"
+            if: matrix.language != 'java'
+            uses: github/codeql-action/init@v3
+            with:
+              languages: ${{ matrix.language }}
+          - name: "Perform CodeQL Analysis"
+            id: codeql-analysis
+            uses: github/codeql-action/analyze@v3
+            with:
+              category: "/language:${{ matrix.language }}"
+  
+  allowlist_code_scan_alerts:
+      needs: codeql-analysis
+      runs-on: ubuntu-latest
+      permissions:
+          # required to read and update code scan alerts
+          security-events: write
+
+          # required to checkout the repository
+          contents: read
+      steps:
+      - name: Install dependencies
+        run: |
+              cat > requirements.txt << EOF
+              Cerberus == 1.3.5 --hash=sha256:7649a5815024d18eb7c6aa5e7a95355c649a53aacfc9b050e9d0bf6bfa2af372 --hash=sha256:81011e10266ef71b6ec6d50e60171258a5b134d69f8fb387d16e4936d0d47642
+              EOF
+              pip install --only-binary=:all: --require-hashes -r requirements.txt
+              rm requirements.txt
+        shell: bash
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+      - name: "Check if allowlist files exist"
+        run: |
+          python -c "
+          import os
+          import requests
+          import base64
+          import yaml
+
+          external_token = os.getenv('GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY_TOKEN')
+          env_file = os.getenv('GITHUB_ENV')
+
+          external_repository = ''
+          allowlist = False
+          external_allowlist = False
+
+          for file_name in ('code_scan_config.yml', 'code_scan_config.yaml'):
+            try: 
+              with open(file_name, 'r') as f:
+                external_repository = yaml.safe_load(f).get('spec', {}).get('inherit', '')
+                allowlist = True
+                
+              break
+            except IOError:
+              pass
+          if allowlist == False:
+            print(f'::notice ::Allowlist file not found')
+        
+          if external_repository != '':
+            headers = {
+              'Accept': 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28',
+              'Authorization': f'token {external_token}'
+            }
+
+            for file_name in ('code_scan_config.yml', 'code_scan_config.yaml'):
+              response = requests.get(f'https://api.github.com/repos/entur/{external_repository}/contents/{file_name}', headers=headers)
+              if response.status_code != 404 and response.status_code != 200:
+                print(f'::error ::Could not get external allowlist file ({response.status_code} - {response.reason})')
+                break
+              if response.status_code == 200:
+                external_allowlist = True
+                break
+            if external_allowlist == False:
+              print(f'::notice ::External allowlist file not found')
+
+          if external_allowlist:
+            with open('external_code_scan_config.yml', 'w') as f:
+              f.write(base64.b64decode(response.json().get('content','')).decode('utf-8'))
+                
+          with open(env_file, 'a') as f:
+            f.write(f'GHA_SECURITY_CODE_SCAN_ALLOWLIST={allowlist}\n')
+            f.write(f'GHA_SECURITY_CODE_SCAN_EXTERNAL_ALLOWLIST={external_allowlist}\n')
+          "   
+        env:
+          GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY_TOKEN: ${{ secrets.external_repository_token }}
+      - name: "Validate allowlist file(s)"
+        id: validate_allowlists
+        if: ${{ env.GHA_SECURITY_CODE_SCAN_ALLOWLIST == 'True' }}
+        run: |
+          python -c "
+          import yaml
+          from cerberus import Validator
+          import sys
+          import os
+
+          schema = {
+              'apiVersion': {'type': 'string', 'required': True},
+              'kind': {'type': 'string', 'required': True, 'allowed': ['CodeScanConfig']},
+              'metadata': {
+                  'type': 'dict', 
+                  'required': True,
+                  'schema': {
+                      'name': {'type': 'string', 'required': True}
+                  }
+              },
+              'spec': {
+                  'type': 'dict',
+                  'required': True,
+                  'schema': {
+                      'inherit': {'type': 'string' },
+                      'allowlist': {
+                          'type': 'list',
+                          'minlength': 1,
+                          'schema': {
+                              'type': 'dict',
+                              'schema': {
+                                  'cwe': {'type': 'string', 'required': True},
+                                  'comment': {'type': 'string', 'required': True},
+                                  'reason': {'type': 'string', 'required': True}
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+          v = Validator(schema)
+          
+          data = ''
+          for file_name in ('code_scan_config.yml', 'code_scan_config.yaml'):
+            try:
+              with open(file_name, 'r') as f:
+                data = yaml.safe_load(f)
+              break
+            except IOError:
+              pass
+          if data == '':
+              print('::error ::Allowlist file not found')
+              sys.exit(1)
+
+          if v.validate(data):
+              print('The allowlist file is valid.')
+          else:
+              print(f'::error ::The allowlist file is invalid. Here are the errors: {v.errors}')
+              sys.exit(1)
+              
+          if os.getenv('GHA_SECURITY_CODE_SCAN_EXTERNAL_ALLOWLIST') == 'True':  
+            data = ''
+            try:
+              with open('external_code_scan_config.yml', 'r') as f:
+                data = yaml.safe_load(f)
+            except IOError:
+              print('::error ::External allowlist file not found')
+              sys.exit(1)
+            if v.validate(data):
+                print('The external allowlist file is valid.')
+            else:
+                print(f'::error ::The external allowlist file is invalid. Here are the errors: {v.errors}')
+                sys.exit(1)
+          "
+      - name: "Allowlist code scan alerts"
+        if: steps.validate_allowlists.outcome == 'success'
+        run: |
+          python -c "
+          import requests
+          import yaml
+          import json
+          import os
+          import sys
+          import time
+
+          repository = os.getenv('GITHUB_REPOSITORY')
+          token = os.getenv('GITHUB_TOKEN')
+    
+          headers = {
+          'Accept': 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+          'Authorization': f'token {token}'
+          }
+
+          allowlist = {}
+          reason_mapping = {
+            'false_positive': 'false positive',
+            'wont_fix': 'won\'t fix',
+            'test': 'used in tests'
+          }
+            
+          try:
+            with open('external_code_scan_config.yml', 'r') as f: 
+              remote_config = yaml.safe_load(f)
+              
+              for element in remote_config.get('spec', {}).get('allowlist', []):
+                cwe = element.get('cwe', '')
+                cwe_tag = f'external/cwe/{cwe}'
+                allowlist[cwe_tag] = {
+                  'comment': element.get('comment', ''),
+                  'reason': reason_mapping[element.get('reason', '')]
+              } 
+          except IOError:
+            pass
+            
+          for file_name in ('code_scan_config.yml', 'code_scan_config.yaml'):
+            try: 
+              with open(file_name, 'r') as f:
+                local_config = yaml.safe_load(f)
+                
+                for element in local_config.get('spec', {}).get('allowlist', []):
+                  cwe = element.get('cwe', '')
+                  cwe_tag = f'external/cwe/{cwe}'
+                  allowlist[cwe_tag] = {
+                    'comment': element.get('comment', ''),
+                    'reason': reason_mapping[element.get('reason', '')]
+                  }
+              break
+            except IOError:
+              pass
+          
+          url = f'https://api.github.com/repos/{repository}/code-scanning/alerts?ref=${{ github.ref }}&per_page=5&state=open'
+          while True:
+            response = requests.get(url, headers=headers)
+
+            if response.status_code != 200:
+              print(f'::error ::Could not get code scan alerts ({response.status_code} - {response.reason})')
+              sys.exit(1)
+
+            alerts = response.json()
+            for alert in alerts:
+              for cwe_tag, data in allowlist.items():
+                if cwe_tag in alert.get('rule', {}).get('tags', []):
+                  alert_number = alert.get('number', '')
+                  patch_url = f'https://api.github.com/repos/{repository}/code-scanning/alerts/{alert_number}'
+                  data_to_send = {
+                    'state': 'dismissed',
+                    'dismissed_reason': data.get('reason', ''),
+                    'dismissed_comment': data.get('comment', '')
+                  }
+
+                  while True:
+                    response_patch = requests.patch(patch_url, headers=headers, json=data_to_send)
+                    x_ratelimit_remaining = response_patch.headers.get('x-ratelimit-remaining')
+                    
+                    if (response_patch.status_code == 403 or response_patch.status_code == 429) and x_ratelimit_remaining == '0':
+                      x_ratelimit_reset = response_patch.headers.get('x-ratelimit-reset')
+                      current_time = int(time.time())
+                      reset_time = int(x_ratelimit_reset) - current_time
+                      
+                      time.sleep(reset_time)
+
+                    else:
+                      break
+                    
+            links = response.headers.get('Link', '')
+            link_next_j = links.find('>; rel=\"next\"')
+
+            if link_next_j == -1:
+              break
+
+            link_next_i = links.rfind('<', 0, link_next_j)
+            if link_next_i == -1:
+              break
+
+            url = links[link_next_i + 1:link_next_j]
+          "
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+  check-for-critical-alerts:
+    runs-on: ubuntu-latest
+    if: always() && github.event_name == 'pull_request' && needs.codeql-analysis.result == 'success' 
+    needs: [allowlist_code_scan_alerts, codeql-analysis]
+    permissions: 
+        security-events: read # required to read code scan alerts
+        issues: write # required for creating issues, and/or adding issue comments
+        pull-requests: write # required for creating comments on pull requests
+    steps: 
+      - name: "Get critical code scan alerts"
+        run: |
+          alerts="$(gh api \
+            --method GET \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            /repos/${{ env.GITHUB_REPOSITORY }}/code-scanning/alerts \
+            -F severity='critical' -F state='open' -F ref='${{ github.ref }}' -F per_page='100' )"
+            if [ "$alerts" == "[]" ]; then
+              echo 'GHA_SECURITY_CODE_SCAN_CREATE_PR_COMMENT='False >> $GITHUB_ENV
+            else
+              echo 'GHA_SECURITY_CODE_SCAN_CREATE_PR_COMMENT='True >> $GITHUB_ENV
+            fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: "Create comment on pull request if critical alerts are found"
+        if: env.GHA_SECURITY_CODE_SCAN_CREATE_PR_COMMENT == 'True'
+        run: |
+          gh api /repos/${{ env.GITHUB_REPOSITORY }}/issues/${{ github.event.pull_request.number }}/comments \
+            -H "Accept: application/vnd.github.v3+json" \
+            --field "body=:no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: 
+              Code scan detected critical vulnerabilities in the code. Please address these vulnerabilities as soon as possible. 
+              The scan results can be found [here](https://github.com/${{ env.GITHUB_REPOSITORY }}/security/code-scanning?query=is%3Aopen+pr%3A${{ github.event.pull_request.number }}). 
+              If you believe one or more of the reported vulnerabilities are false positives/cannot be fixed/can be ignored, please see the [Code Scan documentation](https://github.com/entur/gha-security/blob/main/README-code_scan.md#white-listing-vulnerabilities) on how to allowlist. 
+              :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry:"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
