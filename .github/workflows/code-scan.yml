@@ -91,7 +91,7 @@ jobs:
       steps:
       - name: Install dependencies -- REMEMBER TO FIX
         run: |
-          pip install cerberus
+          pip install git+https://github.com/pyeve/cerberus.git@eeecd5b8610b3507294b2422c2c2610ed8e863fa
         shell: bash
       - name: "Checkout repository"
         uses: actions/checkout@v4
