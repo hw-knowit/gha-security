@@ -281,7 +281,7 @@ jobs:
             except IOError:
               pass
           
-          url = f'https://api.github.com/repos/{repository}/code-scanning/alerts?ref=${{ github.ref }}&per_page=100&state=open'
+          url = f'https://api.github.com/repos/{repository}/code-scanning/alerts?ref=${{ github.ref }}&per_page=5&state=open'
           while True:
             response = requests.get(url, headers=headers)
 
@@ -291,7 +291,6 @@ jobs:
 
             alerts = response.json()
             for alert in alerts:
-              print(alert)
               for cwe_tag, data in allowlist.items():
                 if cwe_tag in alert.get('rule', {}).get('tags', []):
                   alert_number = alert.get('number', '')
@@ -320,7 +319,7 @@ jobs:
             print(f'Links: {links}')
             link_next_j = links.find('>; rel="next"')
             print(f'Link next j: {link_next_j}')
-            
+
             if link_next_j == -1:
               break
 
