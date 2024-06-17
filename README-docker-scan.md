@@ -18,10 +18,9 @@ jobs:
 
 <!-- AUTO-DOC-INPUT:START - Do not remove or modify this section -->
 
-|                                           INPUT                                           |  TYPE  | REQUIRED |    DEFAULT     |                 DESCRIPTION                  |
-|-------------------------------------------------------------------------------------------|--------|----------|----------------|----------------------------------------------|
-| <a name="input_image_artifact"></a>[image_artifact](#input_image_artifact)                | string |  true    |                |  The name of the image artifact to scan      |
-| <a name="input_image_whitelist"></a>[image_whitelist](#input_image_whitelist) | string |  false   | `"image_whitelist.yaml"` | The path to the file <br>containing the whitelisting rules, starting <br>from the root of the <br>repository  |
+|                                   INPUT                                    |  TYPE  | REQUIRED | DEFAULT |      DESCRIPTION       |
+|----------------------------------------------------------------------------|--------|----------|---------|------------------------|
+| <a name="input_image_artifact"></a>[image_artifact](#input_image_artifact) | string |   true   |         | Image artifact to scan |
 
 <!-- AUTO-DOC-INPUT:END -->
 
