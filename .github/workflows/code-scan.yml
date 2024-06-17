@@ -320,6 +320,22 @@ jobs:
             link_next_j = links.find('>; rel="next"')
             print(f'Link next j: {link_next_j}')
 
+            link_next_j = links.find('rel="next"') 
+            print(f'Link next 1: {link_next_j}') 
+                                
+            link_next_j = links.find(' rel="next"') 
+            print(f'Link next 2: {link_next_j}') 
+                                
+            link_next_j = links.find('; rel="next"') 
+            print(f'Link next 3: {link_next_j}') 
+                                
+            link_next_j = links.find('rel=\"next\"') 
+            print(f'Link next 4: {link_next_j}') 
+                                
+            link_next_j = links.find('<; rel=') 
+            print(f'Link next 5: {link_next_j}') 
+            break
+
             if link_next_j == -1:
               break
 
