@@ -62,6 +62,12 @@ jobs:
       steps:
           - name: "Checkout repository"
             uses: actions/checkout@v4
+          - name: "Intialize CodeQL for Kotlin"
+            if: matrix.language == 'kotlin'
+            uses: github/codeql-action/init@v3
+            with:
+              languages: ${{ matrix.language }}
+              build-mode: autobuild
           - name: "Initialize CodeQL for Java"
             if: matrix.language == 'java'
             uses: github/codeql-action/init@v3
@@ -69,7 +75,7 @@ jobs:
               languages: ${{ matrix.language }}
               build-mode: none
           - name: "Initialize CodeQL"
-            if: matrix.language != 'java'
+            if: matrix.language != 'java' && matrix.language != 'kotlin'
             uses: github/codeql-action/init@v3
             with:
               languages: ${{ matrix.language }}
