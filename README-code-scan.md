@@ -9,6 +9,7 @@ jobs:
   code-scan:
     name: Code Scan
     uses: entur/gha-security/.github/workflows/code-scan.yml@v0.2.0
+    secrets: inherit
 ```
 
 ## Inputs
