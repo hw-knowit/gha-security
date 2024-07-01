@@ -2,13 +2,12 @@ name: 'Entur/Security/Code Scan'
 
 on:
     workflow_call:  
-      secrets: 
-        external_repository_token:
-          description: 'Token to access the external repository mentioned in the code_scan_config.yml file. Must have read access to the repository.'
-          required: false
 
 env:
   GITHUB_REPOSITORY: ${{ github.repository }}
+  GHA_SECURITY_CODE_SCAN_EXTERNAL_REPOSITORY_TOKEN: ${{ secrets.external_repository_token }}
+  ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
+  ARTIFACTORY_APIKEY: ${{ secrets.ARTIFACTORY_APIKEY }}
 
 jobs:
   get-repository-languages:
