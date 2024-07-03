@@ -77,7 +77,7 @@ jobs:
             uses: github/codeql-action/init@v3
             with:
               languages: ${{ matrix.language }}
-              build-mode: manual
+              build-mode: autobuild
           - name: "Initialize CodeQL for Java"
             if: matrix.language == 'java'
             uses: github/codeql-action/init@v3
@@ -89,12 +89,12 @@ jobs:
             uses: github/codeql-action/init@v3
             with:
               languages: ${{ matrix.language }}
-          - name: "Download artifacts"
-            if: ${{ env.GHA_SECURITY_CODE_SCAN_ARTIFACT_NAME != '' && env.GHA_SECURITY_CODE_SCAN_ARTIFACT_PATH != ''}}
-            uses: actions/download-artifact@v4
-            with:
-              name: ${{ env.GHA_SECURITY_CODE_SCAN_ARTIFACT_NAME }}
-              path: ${{ env.GHA_SECURITY_CODE_SCAN_ARTIFACT_PATH }}
+#          - name: "Download artifacts"
+#            if: ${{ env.GHA_SECURITY_CODE_SCAN_ARTIFACT_NAME != '' && env.GHA_SECURITY_CODE_SCAN_ARTIFACT_PATH != ''}}
+#            uses: actions/download-artifact@v4
+#            with:
+#              name: ${{ env.GHA_SECURITY_CODE_SCAN_ARTIFACT_NAME }}
+#              path: ${{ env.GHA_SECURITY_CODE_SCAN_ARTIFACT_PATH }}
           - name: "Perform CodeQL Analysis"
             id: codeql-analysis
             uses: github/codeql-action/analyze@v3
