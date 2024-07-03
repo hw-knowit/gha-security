@@ -72,12 +72,6 @@ jobs:
       steps:
           - name: "Checkout repository"
             uses: actions/checkout@v4
-          - name: "Download artifacts"
-            if: ${{ env.GHA_SECURITY_CODE_SCAN_ARTIFACT_NAME != '' && env.GHA_SECURITY_CODE_SCAN_ARTIFACT_PATH != ''}}
-            uses: actions/download-artifact@v4
-            with:
-              name: ${{ env.GHA_SECURITY_CODE_SCAN_ARTIFACT_NAME }}
-              path: ${{ env.GHA_SECURITY_CODE_SCAN_ARTIFACT_PATH }}
           - name: "Intialize CodeQL for Kotlin"
             if: matrix.language == 'kotlin'
             uses: github/codeql-action/init@v3
@@ -95,6 +89,12 @@ jobs:
             uses: github/codeql-action/init@v3
             with:
               languages: ${{ matrix.language }}
+          - name: "Download artifacts"
+            if: ${{ env.GHA_SECURITY_CODE_SCAN_ARTIFACT_NAME != '' && env.GHA_SECURITY_CODE_SCAN_ARTIFACT_PATH != ''}}
+            uses: actions/download-artifact@v4
+            with:
+              name: ${{ env.GHA_SECURITY_CODE_SCAN_ARTIFACT_NAME }}
+              path: ${{ env.GHA_SECURITY_CODE_SCAN_ARTIFACT_PATH }}
           - name: "Perform CodeQL Analysis"
             id: codeql-analysis
             uses: github/codeql-action/analyze@v3
