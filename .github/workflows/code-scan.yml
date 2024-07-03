@@ -83,7 +83,7 @@ jobs:
             env:
               ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
               ARTIFACTORY_APIKEY: ${{ secrets.ARTIFACTORY_APIKEY }}
-              GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx1g
+              GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx2g
   
   allowlist_code_scan_alerts:
       needs: codeql-analysis
