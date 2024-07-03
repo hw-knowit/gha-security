@@ -58,14 +58,12 @@ jobs:
       steps:
           - name: "Checkout repository"
             uses: actions/checkout@v4
-          - name: "Intialize CodeQL for Kotlin"
+          - name: "Initialize CodeQL for Kotlin"
             if: matrix.language == 'kotlin'
             uses: github/codeql-action/init@v3
             with:
               languages: ${{ matrix.language }}
               build-mode: autobuild
-            env:
-              GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g
           - name: "Initialize CodeQL for Java"
             if: matrix.language == 'java'
             uses: github/codeql-action/init@v3
@@ -85,6 +83,7 @@ jobs:
             env:
               ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
               ARTIFACTORY_APIKEY: ${{ secrets.ARTIFACTORY_APIKEY }}
+              GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g
   
   allowlist_code_scan_alerts:
       needs: codeql-analysis
