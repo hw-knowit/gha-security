@@ -9,6 +9,7 @@ jobs:
   code-scan:
     name: Code Scan
     uses: entur/gha-security/.github/workflows/code-scan.yml@v0.2.0
+    secrets: inherit
 ```
 
 ## Inputs
@@ -55,17 +56,20 @@ There are two types of allowlist files that can be used; a local allowlist (plac
 ### Local allowlisting
 To use a local allowlist, create a YAML file in the repository named, either `code_scan_config.yml` or `code_scan_config.yaml`, and place it in the root of the repository. If you create both files, the `code_scan_config.yaml` file will be ignored. The file must follow the format [mentioned below](#schema-for-allowlist-file).
 
+Requirements:
+- The allowlist file must be named either `code_scan_config.yml` or `code_scan_config.yaml` (`code_scan_config.yml` is prioritized).
+- The file must be placed in the root of the repository.
+
 ### External allowlisting
-To use an external allowlist create a YAML file in a different repository and place it in the root of the repository. The file must be named either `code_scan_config.yml` or `code_scan_config.yaml`, and follow the format [mentioned below](#schema-for-allowlist-file). If you create both files, the `code_scan_config.yaml` file will be ignored. To be able to use the external allowlist, you must have a local allowlist file in the repository as well. The repository where the external allowlist file is placed must be referenced in the local allowlist file, under the 'inherit' field. It is important to note that you will also have to use a fine-grained access token to access the external allowlist file. The token must be added as a secret to the repository where the workflow is run, and permissions must include "contents" read access to the repository where the external allowlist file is placed. You can find documentation on how to create a fine-grained access token [here](https://docs.github.com/en/enterprise-cloud@latest/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-fine-grained-personal-access-token), and how to add it as a secret to your repository [here](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository). See the example below on how to use a repository secret, named `EXTERNAL_REPOSITORY_TOKEN`, in the workflow.
-  
-```yaml
-jobs:
-  code-scan:
-    uses: entur/gha-security/.github/workflows/code-scan.yml@v0.2.0
-    with:
-    secrets:
-        external_repository_token: ${{ secrets.EXTERNAL_REPOSITORY_TOKEN }}
-```
+To use an external allowlist create a YAML file in a different repository and place it in the root of the repository. The file must be named either `code_scan_config.yml` or `code_scan_config.yaml`, and follow the format [mentioned below](#schema-for-allowlist-file). If you create both files, the `code_scan_config.yaml` file will be ignored. To be able to use the external allowlist, you must also have a local allowlist file in the repository. The repository where the external allowlist file is placed must be referenced in the local allowlist file, under the 'inherit' field. It is important to note that a fine-grained access token must be created to access the external allowlist file, with READ CONTENT permissions to the repository. The token must then be added as a secret to the repository where the workflow is run, and be named `EXTERNAL_REPOSITORY_TOKEN`. You can find documentation on how to create a fine-grained access token [here](https://docs.github.com/en/enterprise-cloud@latest/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-fine-grained-personal-access-token), and how to add it as a secret to your repository [here](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository). 
+
+Requirements:
+- The allowlist file must be named either `code_scan_config.yml` or `code_scan_config.yaml` (`code_scan_config.yml` is prioritized).
+- The file must be placed in the root of the repository.
+- The repository where the external allowlist file is placed must be referenced in the local allowlist file, under the 'inherit' field.
+- A fine-grained access token must be created to access the external allowlist file, with READ CONTENT permissions to the repository.
+- The token must be added as a secret to the repository where the workflow is run, and be named `EXTERNAL_REPOSITORY_TOKEN`.
+
 
 ### Schema for allowlist file
 ```yaml

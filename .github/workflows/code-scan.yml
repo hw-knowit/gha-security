@@ -1,11 +1,7 @@
 name: 'Entur/Security/Code Scan'
 
 on:
-    workflow_call:  
-      secrets: 
-        external_repository_token:
-          description: 'Token to access the external repository mentioned in the code_scan_config.yml file. Must have read access to the repository.'
-          required: false
+    workflow_call:
 
 env:
   GITHUB_REPOSITORY: ${{ github.repository }}
@@ -62,6 +58,12 @@ jobs:
       steps:
           - name: "Checkout repository"
             uses: actions/checkout@v4
+          - name: "Initialize CodeQL for Kotlin"
+            if: matrix.language == 'kotlin'
+            uses: github/codeql-action/init@v3
+            with:
+              languages: ${{ matrix.language }}
+              build-mode: autobuild
           - name: "Initialize CodeQL for Java"
             if: matrix.language == 'java'
             uses: github/codeql-action/init@v3
@@ -69,7 +71,7 @@ jobs:
               languages: ${{ matrix.language }}
               build-mode: none
           - name: "Initialize CodeQL"
-            if: matrix.language != 'java'
+            if: matrix.language != 'java' && matrix.language != 'kotlin'
             uses: github/codeql-action/init@v3
             with:
               languages: ${{ matrix.language }}
@@ -78,6 +80,10 @@ jobs:
             uses: github/codeql-action/analyze@v3
             with:
               category: "/language:${{ matrix.language }}"
+            env:
+              ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
+              ARTIFACTORY_APIKEY: ${{ secrets.ARTIFACTORY_APIKEY }}
+              GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx2g
   
   allowlist_code_scan_alerts:
       needs: codeql-analysis
