@@ -4,10 +4,6 @@ on:
     pull_request:
 
 jobs:
-    code-scan:
-        uses: ./.github/workflows/code-scan.yml
-        secrets: inherit
-
     update-code-scan-doc:
         uses: entur/gha-meta/.github/workflows/auto-doc.yml@v1.0.0
         with: 
