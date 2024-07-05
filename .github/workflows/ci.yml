@@ -5,7 +5,7 @@ on:
 
 jobs:
     code-scan:
-        uses: ./.github/workflows/code-scan.yml@v0.3.0
+        uses: ./.github/workflows/code-scan.yml
         secrets: inherit
 
     update-code-scan-doc:
