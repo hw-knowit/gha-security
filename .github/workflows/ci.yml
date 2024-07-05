@@ -4,7 +4,7 @@ on:
     pull_request:
 
 jobs:
-    update-code_scan-doc:
+    update-code-scan-doc:
         uses: entur/gha-meta/.github/workflows/auto-doc.yml@v1.0.0
         with: 
             workflow_file: .github/workflows/code-scan.yml
