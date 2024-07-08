@@ -65,6 +65,7 @@ jobs:
           category: 'semgrep-scan'
 
   codeql-analysis:
+      if: needs.get-repository-languages.outputs.repository_languages != '[]'
       runs-on: ubuntu-latest
       needs: get-repository-languages
       permissions:
