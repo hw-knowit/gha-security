@@ -227,7 +227,7 @@ jobs:
 
     check-for-critical-alerts:
       runs-on: ubuntu-latest
-      if: always() && github.event_name == 'pull_request' && needs.docker-scan.result == 'success' 
+      if: always() && github.event_name == 'pull_request' 
       needs: [docker-scan]
       permissions: 
           security-events: read # required to read code scan alerts
