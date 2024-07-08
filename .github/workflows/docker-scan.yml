@@ -14,6 +14,7 @@ on:
 
 env:
   GHA_SECURITY_DOCKER_SCAN_IMAGE_ARTIFACT: ${{ inputs.image_artifact }}
+  GITHUB_REPOSITORY: ${{ github.repository }}
 
 jobs:
     docker-scan:
@@ -223,16 +224,39 @@ jobs:
           with: 
             sarif_file: ${{ steps.anchore-scan.outputs.sarif }}
             category: 'anchore-grype-scan'
-        - name: "Create comment on pull request if critical vulnerabilities found"
-          if: always() && (steps.anchore-scan.outcome == 'failure') && (steps.upload-vulnerability-report.outcome == 'success') && (github.event_name == 'pull_request')
+
+    check-for-critical-alerts:
+      runs-on: ubuntu-latest
+      if: always() && github.event_name == 'pull_request' && needs.docker-scan.result == 'success' 
+      needs: [docker-scan]
+      permissions: 
+          security-events: read # required to read code scan alerts
+          issues: write # required for creating issues, and/or adding issue comments
+          pull-requests: write # required for creating comments on pull requests
+      steps: 
+        - name: "Get critical docker scan alerts"
           run: |
-            PR_NUMBER=${{ github.event.pull_request.number }}
-            REPOSITORY=${{ github.repository }}
-            gh api /repos/$REPOSITORY/issues/$PR_NUMBER/comments \
+            alerts="$(gh api \
+              --method GET \
+              -H 'Accept: application/vnd.github+json' \
+              -H 'X-GitHub-Api-Version: 2022-11-28' \
+              /repos/${{ env.GITHUB_REPOSITORY }}/code-scanning/alerts \
+              -F severity='critical' -F state='open' -F ref='${{ github.ref }}' -F per_page='100' -F tool_name='Grype')"
+              if [ "$alerts" == "[]" ]; then
+                echo 'GHA_SECURITY_DOCKER_SCAN_CREATE_PR_COMMENT='False >> $GITHUB_ENV
+              else
+                echo 'GHA_SECURITY_DOCKER_SCAN_CREATE_PR_COMMENT='True >> $GITHUB_ENV
+              fi
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        - name: "Create comment on pull request if critical alerts are found"
+          if: env.GHA_SECURITY_DOCKER_SCAN_CREATE_PR_COMMENT == 'True'
+          run: |
+            gh api /repos/${{ env.GITHUB_REPOSITORY }}/issues/${{ github.event.pull_request.number }}/comments \
                 -H "Accept: application/vnd.github.v3+json" \
                 --field "body=:no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: 
                 Anchore Grype scan found critical vulnerabilities in the image artifact. Please address these vulnerabilities.
-                The scan results can be found [here](https://github.com/$REPOSITORY/security/code-scanning?query=is%3Aopen+pr%3A$PR_NUMBER)
+                The scan results can be found [here](https://github.com/${{ env.GITHUB_REPOSITORY }}/security/code-scanning?query=is%3Aopen+pr%3A${{ github.event.pull_request.number }})
                 :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry:"
           env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
