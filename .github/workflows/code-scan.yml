@@ -16,8 +16,8 @@ jobs:
           - name: "Get repository languages"
             id: get-repository-languages
             run: |
-                repo_languages="$(gh api /repos/${{ env.GITHUB_REPOSITORY }}/languages)"
-                languages="$( echo $repo_languages | \
+                repo_languages=$(gh api /repos/${{ env.GITHUB_REPOSITORY }}/languages)
+                languages=$(echo "$repo_languages" | \
                   jq 'keys 
                       | .[] as $langs
                       | {
@@ -37,9 +37,9 @@ jobs:
                       | $supported[.]  # and lookup their values, null if not found
                       | select(.)      # select removes null values
                   ' | \
-                  jq --slurp --compact-output 'unique')" # make a oneliner, and remove duplicates
+                  jq --slurp --compact-output 'unique') # make a oneliner, and remove duplicates
 
-                scala_found = "$(echo repo_languages | jq 'keys | .[]' | grep -q 'Scala' && echo 'true' || echo 'false')"
+                scala_found=$(echo "$repo_languages" | jq 'keys | .[]' | grep -q 'Scala' && echo 'true' || echo 'false')
 
                 echo 'GHA_SECURITY_CODE_SCAN_SCALA_FOUND='$scala_found >> $GITHUB_ENV
                 echo 'GHA_SECURITY_CODE_SCAN_REPOSITORY_LANGUAGES='$languages >> $GITHUB_ENV
