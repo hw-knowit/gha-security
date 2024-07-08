@@ -78,6 +78,7 @@ jobs:
               ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
               ARTIFACTORY_APIKEY: ${{ secrets.ARTIFACTORY_APIKEY }}
               GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx2g
+              NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
   
   allowlist_code_scan_alerts:
       needs: codeql-analysis
