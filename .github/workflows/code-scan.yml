@@ -15,7 +15,8 @@ jobs:
           - name: "Get repository languages"
             id: get-repository-languages
             run: |
-                languages="$(gh api /repos/${{ env.GITHUB_REPOSITORY }}/languages | \
+                repository_languages = "$(gh api /repos/${{ env.GITHUB_REPOSITORY }}/languages)"
+                languages="$( echo $repository_languages | \
                   jq 'keys 
                       | .[] as $langs
                       | {
@@ -36,10 +37,30 @@ jobs:
                       | select(.)      # select removes null values
                   ' | \
                   jq --slurp --compact-output 'unique')" # make a oneliner, and remove duplicates
-          
+
+                scala_found = "$(echo $repository_languages | jq 'keys | .[]' | grep -q 'Scala' && echo 'true' || echo 'false')"
+
+                echo 'GHA_SECURITY_CODE_SCAN_SCALA_FOUND='$scala_found >> $GITHUB_ENV
                 echo 'GHA_SECURITY_CODE_SCAN_REPOSITORY_LANGUAGES='$languages >> $GITHUB_ENV
             env:
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  semgrep-analysis:
+    runs-on: ubuntu-latest
+    needs: get-repository-languages
+    steps:
+      - name: "Set up Semgrep"
+        run: |
+          python3 -m pip install semgrep
+      - name: "Scan with Semgrep"
+        run: |
+          semgrep scan --sarif --sarif-output=semgrep.sarif
+      - name: "Upload Semgrep report"
+        id: upload-semgrep-report
+        uses: github/codeql-action/upload-sarif@v3
+        with: 
+          sarif_file: semgrep.sarif
+          category: 'semgrep-scan'
 
   codeql-analysis:
       runs-on: ubuntu-latest
@@ -80,7 +101,7 @@ jobs:
               GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx2g
   
   allowlist_code_scan_alerts:
-      needs: codeql-analysis
+      needs: [codeql-analysis, semgrep-analysis]
       runs-on: ubuntu-latest
       permissions:
           # required to read and update code scan alerts
@@ -336,7 +357,7 @@ jobs:
         
   check-for-critical-alerts:
     runs-on: ubuntu-latest
-    if: always() && github.event_name == 'pull_request' && needs.codeql-analysis.result == 'success' 
+    if: always() && github.event_name == 'pull_request'
     needs: [allowlist_code_scan_alerts, codeql-analysis]
     permissions: 
         security-events: read # required to read code scan alerts
