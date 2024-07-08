@@ -361,7 +361,7 @@ jobs:
   check-for-critical-alerts:
     runs-on: ubuntu-latest
     if: always() && github.event_name == 'pull_request'
-    needs: [allowlist_code_scan_alerts, codeql-analysis]
+    needs: [allowlist_code_scan_alerts]
     permissions: 
         security-events: read # required to read code scan alerts
         issues: write # required for creating issues, and/or adding issue comments
