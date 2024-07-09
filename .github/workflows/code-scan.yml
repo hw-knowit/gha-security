@@ -374,7 +374,7 @@ jobs:
             -H 'Accept: application/vnd.github+json' \
             -H 'X-GitHub-Api-Version: 2022-11-28' \
             /repos/${{ env.GITHUB_REPOSITORY }}/code-scanning/alerts \
-            -F severity='critical' -F state='open' -F ref='${{ github.ref }}' -F per_page='100' )"
+            -F severity='critical' -F state='open' -F ref='${{ github.ref }}' -F per_page='100' -F tool_name='CodeQL' --paginate)"
             if [ "$alerts" == "[]" ]; then
               echo 'GHA_SECURITY_CODE_SCAN_CREATE_PR_COMMENT='False >> $GITHUB_ENV
             else
