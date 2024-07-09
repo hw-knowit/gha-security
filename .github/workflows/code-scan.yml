@@ -58,26 +58,25 @@ jobs:
           python3 -m pip install semgrep
       - name: "Scan with Semgrep"
         run: |
-          semgrep scan \
-          --sarif \
+          semgrep scan --sarif \
           --sarif-output=semgrep.sarif \
           --no-secrets-validation \
           --metrics=off \
-          --exclude=*.c     # Exclude C files \
-          --exclude=*.h     # Exclude C header files \
-          --exclude=*.cpp   # Exclude C++ files \
-          --exclude=*.cxx   # Exclude C++ files \
-          --exclude=*.cc    # Exclude C++ files \
-          --exclude=*.hxx   # Exclude C++ header files \
-          --exclude=*.cs    # Exclude C# files \
-          --exclude=*.go    # Exclude Go files \
-          --exclude=*.java  # Exclude Java files \
-          --exclude=*.js    # Exclude JavaScript files \
-          --exclude=*.ts    # Exclude TypeScript files \
-          --exclude=*.kt    # Exclude Kotlin files \
-          --exclude=*.py    # Exclude Python files \
-          --exclude=*.rb    # Exclude Ruby files \
-          --exclude=*.swift # Exclude Swift files
+          --exclude=*.c \
+          --exclude=*.h \
+          --exclude=*.cpp \
+          --exclude=*.cxx \
+          --exclude=*.cc \
+          --exclude=*.hxx \
+          --exclude=*.cs \
+          --exclude=*.go \
+          --exclude=*.java \
+          --exclude=*.js \
+          --exclude=*.ts \
+          --exclude=*.kt \
+          --exclude=*.py \
+          --exclude=*.rb \
+          --exclude=*.swift
       - name: "Upload Semgrep report"
         id: upload-semgrep-report
         uses: github/codeql-action/upload-sarif@v3
