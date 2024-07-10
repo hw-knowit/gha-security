@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/entur/gha-security/compare/v1.0.1...v1.0.2) (2024-07-10)
+
+
+### Bug Fixes
+
+* Update code-scan.yml to retrieve 100 open code scanning alerts ([0c64b3b](https://github.com/entur/gha-security/commit/0c64b3ba89ba6617b9331edcb9bad8691abacd30))
+
 ## [1.0.1](https://github.com/entur/gha-security/compare/v1.0.0...v1.0.1) (2024-07-09)
 
 
