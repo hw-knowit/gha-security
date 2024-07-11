@@ -8,7 +8,7 @@ Add the following step to your workflow configuration:
 jobs:
   docker-scan:
     name: Docker Scan
-    uses: entur/gha-security/.github/workflows/docker-scan.yml@v0.2.0
+    uses: entur/gha-security/.github/workflows/docker-scan.yml@v1
     with:
         image_artifact: # The name of the image artifact to scan
     
@@ -58,7 +58,7 @@ jobs:
 
   docker-scan:
     needs: docker-build
-    uses: entur/gha-security/.github/workflows/docker-scan.yml@v0.2.0
+    uses: entur/gha-security/.github/workflows/docker-scan.yml@v1
     with:
         image_artifact: ${{ needs.docker-build.outputs.image_artifact }}
 
@@ -85,7 +85,7 @@ To use an external allowlist create a YAML file in a different repository and pl
 jobs:
   docker-scan:
     needs: docker-build
-    uses: entur/gha-security/.github/workflows/docker-scan.yml@v0.2.0
+    uses: entur/gha-security/.github/workflows/docker-scan.yml@v1
     with:
         image_artifact: ${{ needs.docker-build.outputs.image_artifact }}
     secrets:
