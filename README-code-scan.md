@@ -8,7 +8,7 @@ Add the following step to your workflow configuration:
 jobs:
   code-scan:
     name: Code Scan
-    uses: entur/gha-security/.github/workflows/code-scan.yml@v0.2.0
+    uses: entur/gha-security/.github/workflows/code-scan.yml@v1
     secrets: inherit
 ```
 
@@ -43,7 +43,8 @@ on:
 jobs:
     code-scan:
         name: Code Scan
-        uses: entur/gha-security/.github/workflows/code-scan.yml@v0.2.0
+        uses: entur/gha-security/.github/workflows/code-scan.yml@v1
+        secrets: inherit
 ```
 
 ## Allowlisting vulnerabilities
