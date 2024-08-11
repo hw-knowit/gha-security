@@ -129,10 +129,10 @@ jobs:
               ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
               ARTIFACTORY_APIKEY: ${{ secrets.ARTIFACTORY_APIKEY }}
               GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx2g
-          - name: "Move CodeQL results to right directory"
+          - name: "DEBUG - check contents of directory"
             run: |
-              mkdir -p /results
-              mv ../results/* /results
+              cd ..
+              ls -la
           - name: "Upload CodeQL report as artifact"
             uses: actions/upload-artifact@v4
             with:
