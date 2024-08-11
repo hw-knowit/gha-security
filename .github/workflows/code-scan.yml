@@ -125,11 +125,14 @@ jobs:
             uses: github/codeql-action/analyze@v3
             with:
               category: "/language:${{ matrix.language }}"
-              output: "../results"
             env:
               ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
               ARTIFACTORY_APIKEY: ${{ secrets.ARTIFACTORY_APIKEY }}
               GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx2g
+          - name: "Move CodeQL results to right directory"
+            run: |
+              mkdir -p /results
+              mv ../results/* /results
           - name: "Upload CodeQL report as artifact"
             uses: actions/upload-artifact@v4
             with:
