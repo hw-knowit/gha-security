@@ -125,6 +125,7 @@ jobs:
             uses: github/codeql-action/analyze@v3
             with:
               category: "/language:${{ matrix.language }}"
+              output: "/results"
             env:
               ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
               ARTIFACTORY_APIKEY: ${{ secrets.ARTIFACTORY_APIKEY }}
