@@ -133,8 +133,8 @@ jobs:
             run: |
               cd ..
               ls -la
-              ls -la /results
-              cd /results
+              cd results
+              ls -la
               pwd
           - name: "Upload CodeQL report as artifact"
             uses: actions/upload-artifact@v4
