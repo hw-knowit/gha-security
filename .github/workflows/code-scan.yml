@@ -133,7 +133,7 @@ jobs:
             uses: actions/upload-artifact@v4
             with:
               name: codeql-sarif-${{ matrix.language }}
-              path: "../results"
+              path: "results"
               overwrite: true
   
   allowlist_code_scan_alerts:
