@@ -136,11 +136,14 @@ jobs:
               cd results
               ls -la
               pwd
+              REPOSITORY_NAME=$(echo "${{ env.GITHUB_REPOSITORY }}" | cut -d'/' -f2)
+              echo $REPOSITORY_NAME
+              echo "REPOSITORY_NAME=$REPOSITORY_NAME" >> $GITHUB_ENV
           - name: "Upload CodeQL report as artifact"
             uses: actions/upload-artifact@v4
             with:
               name: codeql-sarif-${{ matrix.language }}
-              path: "/results"
+              path: "/home/runner/work/${{ env.REPOSITORY_NAME }}/results"
               overwrite: true
   
   allowlist_code_scan_alerts:
