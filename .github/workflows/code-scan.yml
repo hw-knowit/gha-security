@@ -22,11 +22,9 @@ jobs:
           /repos/${{ env.GITHUB_REPOSITORY }}/pulls \
           -F state="closed" -F per_page="5")
 
-          #Debugging
-          echo $last_five_closed_prs
-
           match_found=false
           for sha in $(echo $GHA_SECURITY_CODE_SCAN_LAST_FIVE_CLOSED_PRS | jq -r '.[].merge_commit_sha'); do
+            echo $sha
             if [ "$sha" == "${{ github.sha }}" ]; then
               match_found=true
               pr_branch=$(echo $GHA_SECURITY_CODE_SCAN_LAST_FIVE_CLOSED_PRS | jq -r '.[0].head.ref')
