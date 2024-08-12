@@ -23,6 +23,12 @@ jobs:
           /repos/${{ env.GITHUB_REPOSITORY }}/pulls \
           -F state="closed" -F per_page="5")
 
+        # Check if the response is empty or malformed
+        if [ -z "$last_five_closed_prs" ] || ! echo "$last_five_closed_prs" | jq empty; then
+          echo "Error: Invalid API response"
+          exit 1
+        fi
+
         match_found=false
         for closed_pr in $(echo "$last_five_closed_prs" | jq -c '.[]'); do
           sha=$(echo "$closed_pr" | jq -r '.merge_commit_sha')
