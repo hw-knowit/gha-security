@@ -8,7 +8,7 @@ env:
 
 jobs:
   upload-scan-reports-from-matching-pr:
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    #if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     runs-on: ubuntu-latest
     steps:
     - name: "Get last five closed PRs and find matching PR"
