@@ -49,6 +49,8 @@ jobs:
 
           #Debugging
           echo $run_id
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: "Download scan reports from matching PR"
       if: env.GHA_SECURITY_CODE_SCAN_RUN_ID != ''
       uses: actions/download-artifact@v4
