@@ -23,11 +23,12 @@ jobs:
           -F state="closed" -F per_page="5")
 
           match_found=false
-          for sha in $(echo $GHA_SECURITY_CODE_SCAN_LAST_FIVE_CLOSED_PRS | jq -r '.[].merge_commit_sha'); do
+          for sha in $(echo $last_five_closed_prs | jq -r '.[].merge_commit_sha'); do
+            echo "SHA: "
             echo $sha
             if [ "$sha" == "${{ github.sha }}" ]; then
               match_found=true
-              pr_branch=$(echo $GHA_SECURITY_CODE_SCAN_LAST_FIVE_CLOSED_PRS | jq -r '.[0].head.ref')
+              pr_branch=$(echo $last_five_closed_prs | jq -r '.[0].head.ref')
               break
             fi
           done
