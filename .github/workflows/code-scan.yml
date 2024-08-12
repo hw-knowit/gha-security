@@ -7,89 +7,138 @@ env:
   GITHUB_REPOSITORY: ${{ github.repository }}
 
 jobs:
+  upload-scan-reports-from-matching-pr:
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    steps:
+    - name: "Get last five closed PRs and find matching PR"
+      run: |
+        last_five_closed_prs="$( gh api \
+          --method GET \
+          -H "Accept: application/vnd.github+json" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \ 
+          /repos/${{ env.GITHUB_REPOSITORY }}/pulls) \
+          -F state='closed' -F per_page='5'"
+
+          #Debugging
+          echo $last_five_closed_prs
+
+          match_found=false
+          for sha in $(echo $GHA_SECURITY_CODE_SCAN_LAST_FIVE_CLOSED_PRS | jq -r '.[].merge_commit_sha'); do
+            if [ "$sha" == "${{ github.sha }}" ]; then
+              match_found=true
+              pr_branch=$(echo $GHA_SECURITY_CODE_SCAN_LAST_FIVE_CLOSED_PRS | jq -r '.[0].head.ref')
+              break
+            fi
+          done
+
+          #Debugging
+          echo $match_found
+          echo $pr_branch
+
+          if [ "$match_found" == "true" ]; then
+            workflow_runs=$(gh api \
+              --method GET \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              /repos/${{ env.GITHUB_REPOSITORY }}/actions/runs \
+              -F branch=$pr_branch -F event=push -F status=completed -F per_page=1)
+            run_id=$(echo $workflow_runs | jq -r '.workflow_runs[0].id')
+            echo "GHA_SECURITY_CODE_SCAN_RUN_ID=$run_id" >> $GITHUB_ENV
+          fi
+
+          #Debugging
+          echo $run_id
+    - name: "Download scan reports from matching PR"
+      if: env.GHA_SECURITY_CODE_SCAN_RUN_ID != ''
+      uses: actions/download-artifact@v4
+      with:
+        run-id: ${{ env.GHA_SECURITY_CODE_SCAN_RUN_ID }}
+        path: /home/runner/work/${{ env.GITHUB_REPOSITORY }}/results
+
   get-repository-languages:
       runs-on: ubuntu-latest
       outputs: 
           repository_languages: ${{ env.GHA_SECURITY_CODE_SCAN_REPOSITORY_LANGUAGES }}
           scala_found: ${{ env.GHA_SECURITY_CODE_SCAN_SCALA_FOUND }} 
       steps:
-          - name: "Get repository languages"
-            id: get-repository-languages
-            run: |
-                repo_languages=$(gh api /repos/${{ env.GITHUB_REPOSITORY }}/languages)
-                languages=$(echo "$repo_languages" | \
-                  jq 'keys 
-                      | .[] as $langs
-                      | {
-                          "C":"c",
-                          "C++":"cpp",
-                          "C#":"csharp",
-                          "Go":"go",
-                          "Java":"java",
-                          "JavaScript":"javascript-typescript",
-                          "TypeScript":"javascript-typescript",
-                          "Kotlin":"kotlin",
-                          "Python":"python",
-                          "Ruby":"ruby",
-                          "Swift":"swift"
-                        } as $supported 
-                      | $langs         # operate on all the languages
-                      | $supported[.]  # and lookup their values, null if not found
-                      | select(.)      # select removes null values
-                  ' | \
+      - name: "Get repository languages"
+        id: get-repository-languages
+        run: |
+            repo_languages=$(gh api /repos/${{ env.GITHUB_REPOSITORY }}/languages)
+            languages=$(echo "$repo_languages" | \
+              jq 'keys 
+                  | .[] as $langs
+                  | {
+                      "C":"c",
+                      "C++":"cpp",
+                      "C#":"csharp",
+                      "Go":"go",
+                      "Java":"java",
+                      "JavaScript":"javascript-typescript",
+                      "TypeScript":"javascript-typescript",
+                      "Kotlin":"kotlin",
+                      "Python":"python",
+                      "Ruby":"ruby",
+                      "Swift":"swift"
+                    } as $supported 
+                  | $langs         # operate on all the languages
+                  | $supported[.]  # and lookup their values, null if not found
+                  | select(.)      # select removes null values
+              ' | \
                   jq --slurp --compact-output 'unique') # make a oneliner, and remove duplicates
 
                 scala_found=$(echo "$repo_languages" | jq 'keys | .[]' | grep -q 'Scala' && echo 'true' || echo 'false')
 
-                echo 'GHA_SECURITY_CODE_SCAN_SCALA_FOUND='$scala_found >> $GITHUB_ENV
-                echo 'GHA_SECURITY_CODE_SCAN_REPOSITORY_LANGUAGES='$languages >> $GITHUB_ENV
-            env:
-              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            echo 'GHA_SECURITY_CODE_SCAN_SCALA_FOUND='$scala_found >> $GITHUB_ENV
+            echo 'GHA_SECURITY_CODE_SCAN_REPOSITORY_LANGUAGES='$languages >> $GITHUB_ENV
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   semgrep-analysis:
     if: needs.get-repository-languages.outputs.scala_found == 'true'
     runs-on: ubuntu-latest
     needs: get-repository-languages
     steps:
-      - name: "Checkout repository"
-        uses: actions/checkout@v4
-      - name: "Set up Semgrep"
-        run: |
-          python3 -m pip install semgrep
-      - name: "Scan with Semgrep"
-        run: |
-          semgrep scan --sarif \
-          --sarif-output=semgrep.sarif \
-          --no-secrets-validation \
-          --metrics=off \
-          --config=p/scala \
-          --exclude=*.c \
-          --exclude=*.h \
-          --exclude=*.cpp \
-          --exclude=*.cxx \
-          --exclude=*.cc \
-          --exclude=*.hxx \
-          --exclude=*.cs \
-          --exclude=*.go \
-          --exclude=*.java \
-          --exclude=*.js \
-          --exclude=*.ts \
-          --exclude=*.kt \
-          --exclude=*.py \
-          --exclude=*.rb \
-          --exclude=*.swift
-      - name: "Upload Semgrep report"
-        id: upload-semgrep-report
-        uses: github/codeql-action/upload-sarif@v3
-        with: 
-          sarif_file: semgrep.sarif
-          category: 'semgrep-scan'
-      - name: "Upload Semgrep report as artifact"
-        uses: actions/upload-artifact@v4
-        with:
-          name: semgrep-sarif
-          path: semgrep.sarif
-          overwrite: true
+    - name: "Checkout repository"
+      uses: actions/checkout@v4
+    - name: "Set up Semgrep"
+      run: |
+        python3 -m pip install semgrep
+    - name: "Scan with Semgrep"
+      run: |
+        semgrep scan --sarif \
+        --sarif-output=semgrep.sarif \
+        --no-secrets-validation \
+        --metrics=off \
+        --config=p/scala \
+        --exclude=*.c \
+        --exclude=*.h \
+        --exclude=*.cpp \
+        --exclude=*.cxx \
+        --exclude=*.cc \
+        --exclude=*.hxx \
+        --exclude=*.cs \
+        --exclude=*.go \
+        --exclude=*.java \
+        --exclude=*.js \
+        --exclude=*.ts \
+        --exclude=*.kt \
+        --exclude=*.py \
+        --exclude=*.rb \
+        --exclude=*.swift
+    - name: "Upload Semgrep report"
+      id: upload-semgrep-report
+      uses: github/codeql-action/upload-sarif@v3
+      with: 
+        sarif_file: semgrep.sarif
+        category: 'semgrep-scan'
+    - name: "Upload Semgrep report as artifact"
+      uses: actions/upload-artifact@v4
+      with:
+        name: semgrep-sarif
+        path: semgrep.sarif
+        overwrite: true
 
   codeql-analysis:
       if: needs.get-repository-languages.outputs.repository_languages != '[]'
@@ -107,46 +156,40 @@ jobs:
           matrix:
               language: ${{fromJson(needs.get-repository-languages.outputs.repository_languages)}}
       steps:
-          - name: "Checkout repository"
-            uses: actions/checkout@v4
-          - name: "Initialize CodeQL for Java/Kotlin"
-            if: matrix.language == 'kotlin' || matrix.language == 'java'
-            uses: github/codeql-action/init@v3
-            with:
-              languages: ${{ matrix.language }}
-              build-mode: autobuild
-          - name: "Initialize CodeQL"
-            if: matrix.language != 'java' && matrix.language != 'kotlin'
-            uses: github/codeql-action/init@v3
-            with:
-              languages: ${{ matrix.language }}
-          - name: "Perform CodeQL Analysis"
-            id: codeql-analysis
-            uses: github/codeql-action/analyze@v3
-            with:
-              category: "/language:${{ matrix.language }}"
-            env:
-              ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
-              ARTIFACTORY_APIKEY: ${{ secrets.ARTIFACTORY_APIKEY }}
-              GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx2g
-          - name: "DEBUG - check contents of directory"
-            run: |
-              cd ..
-              ls -la
-              cd results
-              ls -la
-              pwd
-              REPOSITORY_NAME=$(echo "${{ env.GITHUB_REPOSITORY }}" | cut -d'/' -f2)
-              echo $REPOSITORY_NAME
-              echo "REPOSITORY_NAME=$REPOSITORY_NAME" >> $GITHUB_ENV
-          - name: "Upload CodeQL report as artifact"
-            uses: actions/upload-artifact@v4
-            with:
-              name: codeql-sarif-${{ matrix.language }}
-              path: "/home/runner/work/${{ env.REPOSITORY_NAME }}/results"
-              overwrite: true
-  
-  allowlist_code_scan_alerts:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+      - name: "Initialize CodeQL for Java/Kotlin"
+        if: matrix.language == 'kotlin' || matrix.language == 'java'
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: autobuild
+      - name: "Initialize CodeQL"
+        if: matrix.language != 'java' && matrix.language != 'kotlin'
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+      - name: "Perform CodeQL Analysis"
+        id: codeql-analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
+        env:
+          ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
+          ARTIFACTORY_APIKEY: ${{ secrets.ARTIFACTORY_APIKEY }}
+          GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx2g
+      - name: "Get repository name"
+        run: |
+          REPOSITORY_NAME=$(echo "${{ env.GITHUB_REPOSITORY }}" | cut -d'/' -f2)
+          echo "REPOSITORY_NAME=$REPOSITORY_NAME" >> $GITHUB_ENV
+      - name: "Upload CodeQL report as artifact"
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-${{ matrix.language }}
+          path: "/home/runner/work/${{ env.REPOSITORY_NAME }}/results"
+          overwrite: true
+
+  allowlist-code-scan-alerts:
       needs: [codeql-analysis, semgrep-analysis]
       runs-on: ubuntu-latest
       permissions:
@@ -404,36 +447,36 @@ jobs:
   check-for-critical-alerts:
     runs-on: ubuntu-latest
     if: always() && github.event_name == 'pull_request'
-    needs: [allowlist_code_scan_alerts]
+    needs: [allowlist-code-scan-alerts]
     permissions: 
         security-events: read # required to read code scan alerts
         issues: write # required for creating issues, and/or adding issue comments
         pull-requests: write # required for creating comments on pull requests
     steps: 
-      - name: "Get critical code scan alerts"
-        run: |
-          alerts="$(gh api \
-            --method GET \
-            -H 'Accept: application/vnd.github+json' \
-            -H 'X-GitHub-Api-Version: 2022-11-28' \
-            /repos/${{ env.GITHUB_REPOSITORY }}/code-scanning/alerts \
-            -F severity='critical' -F state='open' -F ref='${{ github.ref }}' -F per_page='100' -F tool_name='CodeQL' --paginate)"
-            if [ "$alerts" == "[]" ]; then
-              echo 'GHA_SECURITY_CODE_SCAN_CREATE_PR_COMMENT='False >> $GITHUB_ENV
-            else
-              echo 'GHA_SECURITY_CODE_SCAN_CREATE_PR_COMMENT='True >> $GITHUB_ENV
-            fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: "Create comment on pull request if critical alerts are found"
-        if: env.GHA_SECURITY_CODE_SCAN_CREATE_PR_COMMENT == 'True'
-        run: |
-          gh api /repos/${{ env.GITHUB_REPOSITORY }}/issues/${{ github.event.pull_request.number }}/comments \
-            -H "Accept: application/vnd.github.v3+json" \
-            --field "body=:no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: 
-              Code scan detected critical vulnerabilities in the code. Please address these vulnerabilities as soon as possible. 
-              The scan results can be found [here](https://github.com/${{ env.GITHUB_REPOSITORY }}/security/code-scanning?query=is%3Aopen+pr%3A${{ github.event.pull_request.number }}). 
-              If you believe one or more of the reported vulnerabilities are false positives/cannot be fixed/can be ignored, please see the [Code Scan documentation](https://github.com/entur/gha-security/blob/main/README-code_scan.md#white-listing-vulnerabilities) on how to allowlist. 
-              :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry:"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: "Get critical code scan alerts"
+      run: |
+        alerts="$(gh api \
+          --method GET \
+          -H 'Accept: application/vnd.github+json' \
+          -H 'X-GitHub-Api-Version: 2022-11-28' \
+          /repos/${{ env.GITHUB_REPOSITORY }}/code-scanning/alerts \
+          -F severity='critical' -F state='open' -F ref='${{ github.ref }}' -F per_page='100' -F tool_name='CodeQL' --paginate)"
+          if [ "$alerts" == "[]" ]; then
+            echo 'GHA_SECURITY_CODE_SCAN_CREATE_PR_COMMENT='False >> $GITHUB_ENV
+          else
+            echo 'GHA_SECURITY_CODE_SCAN_CREATE_PR_COMMENT='True >> $GITHUB_ENV
+          fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: "Create comment on pull request if critical alerts are found"
+      if: env.GHA_SECURITY_CODE_SCAN_CREATE_PR_COMMENT == 'True'
+      run: |
+        gh api /repos/${{ env.GITHUB_REPOSITORY }}/issues/${{ github.event.pull_request.number }}/comments \
+          -H "Accept: application/vnd.github.v3+json" \
+          --field "body=:no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: 
+            Code scan detected critical vulnerabilities in the code. Please address these vulnerabilities as soon as possible. 
+            The scan results can be found [here](https://github.com/${{ env.GITHUB_REPOSITORY }}/security/code-scanning?query=is%3Aopen+pr%3A${{ github.event.pull_request.number }}). 
+            If you believe one or more of the reported vulnerabilities are false positives/cannot be fixed/can be ignored, please see the [Code Scan documentation](https://github.com/entur/gha-security/blob/main/README-code_scan.md#white-listing-vulnerabilities) on how to allowlist. 
+            :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry: :no_entry:"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
