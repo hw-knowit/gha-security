@@ -24,19 +24,23 @@ jobs:
           -F state="closed" -F per_page="5")
 
           match_found=false
-          for sha in $(echo $last_five_closed_prs | jq -r '.[].merge_commit_sha'); do
+          for closed_pr in $echo $last_five_closed_prs; do
+            sha=$(echo $closed_pr | jq -r '.merge_commit_sha')
             echo "SHA: "
             echo $sha
             if [ "$sha" == "${{ github.sha }}" ]; then
               match_found=true
-              pr_branch=$(echo $last_five_closed_prs | jq -r '.[0].head.ref')
+              pr_branch=$(echo $closed_pr | jq -r '.head.ref')
               break
             fi
           done
 
           #Debugging
+          echo "Github SHA: "
           echo ${{ github.sha }}
+          echo "Match found: "
           echo $match_found
+          echo "PR branch: "
           echo $pr_branch
 
           if [ "$match_found" == "true" ]; then
