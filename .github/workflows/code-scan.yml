@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
+      actions: read
     steps:
     - name: "Get last five closed PRs and find matching PR"
       run: |
