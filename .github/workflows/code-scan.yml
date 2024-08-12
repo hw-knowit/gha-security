@@ -8,7 +8,7 @@ env:
 
 jobs:
   upload-scan-reports-from-matching-pr:
-    #if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
@@ -35,6 +35,7 @@ jobs:
           done
 
           #Debugging
+          echo ${{ github.sha }}
           echo $match_found
           echo $pr_branch
 
