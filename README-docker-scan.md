@@ -63,6 +63,7 @@ jobs:
         image_artifact: ${{ needs.docker-build.outputs.image_artifact }}
 
   docker-push:
+    needs: docker-build
     uses: entur/gha-docker/.github/workflows/push.yml@v1
     secrets: inherit
 ```
