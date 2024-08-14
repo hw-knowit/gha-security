@@ -76,7 +76,7 @@ jobs:
           )
           
           if workflow_runs.status_code != 200:
-            print(::error ::Error fetching workflow runs)
+            print('::error ::Error fetching workflow runs')
             with open(env_file, 'a') as f:
               f.write('GHA_SECURITY_CODE_SCAN_CONTINUE_SCAN_FOR_PUSH=True\n')
             exit(0)
