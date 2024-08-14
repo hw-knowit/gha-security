@@ -105,10 +105,10 @@ jobs:
                 f'https://api.github.com/repos/{github_repository}/actions/artifacts/{artifact_id}/zip',
                 headers=headers
               )
-              print(f'download status: {download_status.status_code}')
-              print(f'download content: {download_status.json()}')
+              print(f'download status: {download.status_code}')
+              print(f'download content: {download.json()}')
               
-              if download_status.status_code != 200:
+              if download.status_code != 200:
                 print('::error ::Error downloading artifact')
                 with open(env_file, 'a') as f:
                   f.write('GHA_SECURITY_CODE_SCAN_CONTINUE_SCAN_FOR_PUSH=True\n')
