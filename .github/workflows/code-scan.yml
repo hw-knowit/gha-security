@@ -10,29 +10,31 @@ jobs:
   upload-scan-reports-from-matching-pr:
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     runs-on: ubuntu-latest
+    outputs:
+      continue_scan_for_push: ${{ env.GHA_SECURITY_CODE_SCAN_CONTINUE_SCAN_FOR_PUSH }}
     permissions:
       pull-requests: read
       actions: read
     steps:
-    - name: "Get ID of workflow run that contains latest code scan reports from matching PR"
+    - name: "Import scan reports from matching PR"
       run: |
         python -c "
         import os
         import requests
         import json
 
+        continue_scan = False
+
         github_sha = os.getenv('GITHUB_SHA')
         github_token = os.getenv('GITHUB_TOKEN')
         github_repository = os.getenv('GITHUB_REPOSITORY')
-
-        print(f'github_sha: {github_sha}')
 
         headers = {
           'Accept': 'application/vnd.github+json',
           'X-GitHub-Api-Version': '2022-11-28',
           'Authorization': f'token {github_token}'
         }
-
+            
         last_five_closed_prs = requests.get(
           f'https://api.github.com/repos/{github_repository}/pulls',
           headers=headers,
@@ -41,13 +43,14 @@ jobs:
             'per_page': '5'
           }
         )
-
+        
         if last_five_closed_prs.status_code != 200:
-          print('Error fetching closed PRs')
-          exit(1)
+          print('::error ::Error fetching closed PRs')
+          with open(env_file, 'a') as f:
+            f.write('GHA_SECURITY_CODE_SCAN_CONTINUE_SCAN_FOR_PUSH=True\n')
+          exit(0)
 
         last_five_closed_prs = last_five_closed_prs.json()
-
         match_found = False
         pr_branch = None
         for closed_pr in last_five_closed_prs:
@@ -57,10 +60,9 @@ jobs:
             match_found = True
             pr_branch = closed_pr.get('head').get('ref')
             break
-
         print(f'match_found: {match_found}')
         print(f'pr_branch: {pr_branch}')
-
+          
         if match_found:
           workflow_runs = requests.get(
             f'https://api.github.com/repos/{github_repository}/actions/runs',
@@ -72,36 +74,57 @@ jobs:
               'per_page': '1'
             }
           )
-
+          
           if workflow_runs.status_code != 200:
-            print('Error fetching workflow runs')
-            exit(1)
-
+            print(::error ::Error fetching workflow runs)
+            with open(env_file, 'a') as f:
+              f.write('GHA_SECURITY_CODE_SCAN_CONTINUE_SCAN_FOR_PUSH=True\n')
+            exit(0)
+          
           workflow_runs = workflow_runs.json()
           run_id = workflow_runs.get('workflow_runs')[0].get('id')
           print(f'run_id: {run_id}')
-
-          with open(os.getenv('GITHUB_ENV'), 'a') as f:
-            f.write(f'GHA_SECURITY_CODE_SCAN_RUN_ID={run_id}\n')       
+          
+          artifacts = requests.get(
+            f'https://api.github.com/repos/{github_repository}/actions/runs/{run_id}/artifacts',
+            headers=headers    
+          )
+          print(f'artifacts: {artifacts.json()}')
+          
+          if artifacts.status_code != 200:
+            print('::error ::Error fetching artifacts')
+            with open(env_file, 'a') as f:
+              f.write('GHA_SECURITY_CODE_SCAN_CONTINUE_SCAN_FOR_PUSH=True\n')
+            exit(0)
+          
+          for artifact in artifacts.json().get('artifacts'):
+            print(f'artifact: {artifact}')
+            if artifact.get('name').startswith('codeql') or artifact.get('name').startswith('semgrep'):
+              download_status = requests.get(
+                f'https://api.github.com/repos/{github_repository}/actions/artifacts/{artifact.get('id')}/zip',
+                headers=headers
+              )
+              print(f'download_status: {download_status.status_code}')
+              if download_status.status_code != 200:
+                print('::error ::Error downloading artifact')
+                with open(env_file, 'a') as f:
+                  f.write('GHA_SECURITY_CODE_SCAN_CONTINUE_SCAN_FOR_PUSH=True\n')
+                exit(0)
+          
+          with open(env_file, 'a') as f:
+            f.write('GHA_SECURITY_CODE_SCAN_CONTINUE_SCAN_FOR_PUSH=False\n') 
         "
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GITHUB_SHA: ${{ github.sha }}
-    - name: "Get repository name, without owner"
-      run: |
-        REPOSITORY_NAME=$(echo "${{ env.GITHUB_REPOSITORY }}" | cut -d'/' -f2)
-        echo "REPOSITORY_NAME=$REPOSITORY_NAME" >> $GITHUB_ENV
-    - name: "Download scan reports from workflow run"
-      uses: actions/download-artifact@v4
-      with:
-        run-id: ${{ env.GHA_SECURITY_CODE_SCAN_RUN_ID }}
-        path: /home/runner/work/${{ env.REPOSITORY_NAME }}/results
     - name: "debugging step"
       run: |
-        ls -la /home/runner/work/${{ env.REPOSITORY_NAME }}/results
+        ls -la 
 
   get-repository-languages:
+      if: github.event_name == 'push' && needs.upload-scan-reports-from-matching-pr.outputs.continue_scan_for_push == 'True' || github.event_name == 'pull_request'
       runs-on: ubuntu-latest
+      needs: upload-scan-reports-from-matching-pr
       outputs: 
           repository_languages: ${{ env.GHA_SECURITY_CODE_SCAN_REPOSITORY_LANGUAGES }}
           scala_found: ${{ env.GHA_SECURITY_CODE_SCAN_SCALA_FOUND }} 
