@@ -28,6 +28,7 @@ jobs:
         github_sha = os.getenv('GITHUB_SHA')
         github_token = os.getenv('GITHUB_TOKEN')
         github_repository = os.getenv('GITHUB_REPOSITORY')
+        env_file = os.getenv('GITHUB_ENV')
 
         headers = {
           'Accept': 'application/vnd.github+json',
