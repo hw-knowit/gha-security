@@ -5,13 +5,12 @@ on:
 
 env:
   GITHUB_REPOSITORY: ${{ github.repository }}
+  GHA_SECURITY_CODE_SCAN_CONTINUE_SCAN_FOR_PUSH: 'False'
 
 jobs:
   upload-scan-reports-from-matching-pr:
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     runs-on: ubuntu-latest
-    outputs:
-      continue_scan_for_push: ${{ env.GHA_SECURITY_CODE_SCAN_CONTINUE_SCAN_FOR_PUSH }}
     permissions:
       pull-requests: read
       actions: read
@@ -102,11 +101,13 @@ jobs:
             print(f'artifact: {artifact}')
             if artifact.get('name').startswith('codeql') or artifact.get('name').startswith('semgrep'):
               artifact_id = artifact.get('id')
-              download_status = requests.get(
+              download = requests.get(
                 f'https://api.github.com/repos/{github_repository}/actions/artifacts/{artifact_id}/zip',
                 headers=headers
               )
-              print(f'download_status: {download_status.status_code}')
+              print(f'download status: {download_status.status_code}')
+              print(f'download content: {download_status.json()}')
+              
               if download_status.status_code != 200:
                 print('::error ::Error downloading artifact')
                 with open(env_file, 'a') as f:
@@ -162,6 +163,7 @@ jobs:
             echo 'GHA_SECURITY_CODE_SCAN_REPOSITORY_LANGUAGES='$languages >> $GITHUB_ENV
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CONTINUE_SCAN_FOR_PUSH: ${{ env.GHA_SECURITY_CODE_SCAN_CONTINUE_SCAN_FOR_PUSH }}
 
   semgrep-analysis:
     if: needs.get-repository-languages.outputs.scala_found == 'true'
