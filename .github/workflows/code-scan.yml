@@ -100,8 +100,9 @@ jobs:
           for artifact in artifacts.json().get('artifacts'):
             print(f'artifact: {artifact}')
             if artifact.get('name').startswith('codeql') or artifact.get('name').startswith('semgrep'):
+              artifact_id = artifact.get('id')
               download_status = requests.get(
-                f'https://api.github.com/repos/{github_repository}/actions/artifacts/{artifact.get('id')}/zip',
+                f'https://api.github.com/repos/{github_repository}/actions/artifacts/{artifact_id}/zip',
                 headers=headers
               )
               print(f'download_status: {download_status.status_code}')
