@@ -124,7 +124,7 @@ jobs:
         ls -la 
 
   get-repository-languages:
-      if: github.event_name == 'push' && needs.upload-scan-reports-from-matching-pr.outputs.continue_scan_for_push == 'True' || github.event_name == 'pull_request'
+      if: (github.event_name == 'push' && needs.upload-scan-reports-from-matching-pr.outputs.continue_scan_for_push == 'True') || github.event_name == 'pull_request'
       runs-on: ubuntu-latest
       needs: upload-scan-reports-from-matching-pr
       outputs: 
