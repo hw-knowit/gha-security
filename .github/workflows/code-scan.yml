@@ -15,14 +15,11 @@ jobs:
       pull-requests: read
       actions: read
     steps:
-    - name: "Import scan reports from matching PR"
+    - name: "Get workflow run ID for matching PR"
       run: |
         python -c "
         import os
         import requests
-        import json
-
-        continue_scan = False
 
         github_sha = os.getenv('GITHUB_SHA')
         github_token = os.getenv('GITHUB_TOKEN')
@@ -84,45 +81,18 @@ jobs:
           workflow_runs = workflow_runs.json()
           run_id = workflow_runs.get('workflow_runs')[0].get('id')
           print(f'run_id: {run_id}')
-          
-          artifacts = requests.get(
-            f'https://api.github.com/repos/{github_repository}/actions/runs/{run_id}/artifacts',
-            headers=headers    
-          )
-          print(f'artifacts: {artifacts.json()}')
-          
-          if artifacts.status_code != 200:
-            print('::error ::Error fetching artifacts')
-            with open(env_file, 'a') as f:
-              f.write('GHA_SECURITY_CODE_SCAN_CONTINUE_SCAN_FOR_PUSH=True\n')
-            exit(0)
-          
-          for artifact in artifacts.json().get('artifacts'):
-            print(f'artifact: {artifact}')
-            if artifact.get('name').startswith('codeql') or artifact.get('name').startswith('semgrep'):
-              artifact_id = artifact.get('id')
-              download = requests.get(
-                f'https://api.github.com/repos/{github_repository}/actions/artifacts/{artifact_id}/zip',
-                headers=headers
-              )
-              print(f'download status: {download.status_code}')
-              print(f'download location: {download.headers.get('Location')}')
-              
-              if download.status_code != 200:
-                print('::error ::Error downloading artifact')
-                with open(env_file, 'a') as f:
-                  f.write('GHA_SECURITY_CODE_SCAN_CONTINUE_SCAN_FOR_PUSH=True\n')
-                exit(0)
-          
+
           with open(env_file, 'a') as f:
-            f.write('GHA_SECURITY_CODE_SCAN_CONTINUE_SCAN_FOR_PUSH=False\n') 
+            f.write(f'GHA_SECURITY_CODE_SCAN_WORKFLOW_RUN_ID={run_id}\n')
         "
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GITHUB_SHA: ${{ github.sha }}
-    - name: "debugging step"
-      run: |
-        ls -la 
+    - name: "Download artifacts from workflow run ID"
+      if: env.GHA_SECURITY_CODE_SCAN_WORKFLOW_RUN_ID != ''
+      uses: actions/download-artifact@v4
+      with:
+        run-id: ${{ env.GHA_SECURITY_CODE_SCAN_WORKFLOW_RUN_ID }}
 
   get-repository-languages:
       if: github.event_name == 'pull_request'
