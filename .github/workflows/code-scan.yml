@@ -93,6 +93,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         run-id: ${{ env.GHA_SECURITY_CODE_SCAN_WORKFLOW_RUN_ID }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
 
   get-repository-languages:
       if: github.event_name == 'pull_request'
