@@ -106,7 +106,7 @@ jobs:
                 headers=headers
               )
               print(f'download status: {download.status_code}')
-              print(f'download location: {download.location}')
+              print(f'download location: {download.headers.get('Location')}')
               
               if download.status_code != 200:
                 print('::error ::Error downloading artifact')
