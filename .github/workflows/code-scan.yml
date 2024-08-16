@@ -111,12 +111,12 @@ jobs:
                 with open(env_file, 'a') as f:
                   f.write(f'GHA_SECURITY_CODE_SCAN_WORKFLOW_RUN_ID={run_id}\n')
               else:
-                print('::error ::No matching workflow run found')
+                print('::notice ::No matching workflow run found')
                 continue_scan = True
                 skip_job = True
               
           else:
-            print('::error ::No matching PR found')
+            print('::notice ::No matching PR found')
             print('Five recently updated PRs (closed):')
             for pr in five_recently_updated_closed_prs:
               print(pr.get('head').get('ref'))
