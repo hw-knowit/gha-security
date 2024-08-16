@@ -48,6 +48,7 @@ jobs:
         import requests
 
         continue_scan = False
+        skip_job = False
 
         github_sha = os.getenv('GITHUB_SHA')
         github_token = os.getenv('GITHUB_TOKEN')
@@ -66,13 +67,15 @@ jobs:
           params={
             'state': 'closed',
             'per_page': '5',
-            'sort': 'updated'
+            'sort': 'updated',
+            'direction': 'desc'
           }
         )
         
         if last_five_closed_prs.status_code != 200:
           print('::error ::Error fetching closed PRs')
           continue_scan = True
+          skip_job = True
         else: 
           last_five_closed_prs = last_five_closed_prs.json()
           match_found = False
@@ -99,6 +102,7 @@ jobs:
             if workflow_run.status_code != 200:
               print('::error ::Error fetching workflow run')
               continue_scan = True
+              skip_job = True
             else:  
               workflow_run = workflow_run.json()
               run_id = workflow_run.get('workflow_run')[0].get('id')
@@ -112,9 +116,11 @@ jobs:
             for pr in last_five_closed_prs:
               print(pr.get('head').get('ref'))
             continue_scan = True
+            skip_job = True
 
         with open(env_file, 'a') as f:
           f.write('GHA_SECURITY_CODE_SCAN_CONTINUE_SCAN=' + str(continue_scan) + '\n')
+          f.write('GHA_SECURITY_CODE_SCAN_SKIP_JOB=' + str(skip_job) + '\n')
         "
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
