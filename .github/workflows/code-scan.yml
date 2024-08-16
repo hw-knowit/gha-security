@@ -108,10 +108,11 @@ jobs:
               
           else:
             print('::error ::No matching PR found')
+            print('last_five_closed_prs:', last_five_closed_prs.json())
             continue_scan = True
 
         with open(env_file, 'a') as f:
-          f.write('GHA_SECURITY_CODE_SCAN_CONTINUE_SCAN' + str(continue_scan) + '\n')
+          f.write('GHA_SECURITY_CODE_SCAN_CONTINUE_SCAN=' + str(continue_scan) + '\n')
         "
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -170,7 +171,6 @@ jobs:
             echo 'GHA_SECURITY_CODE_SCAN_REPOSITORY_LANGUAGES='$languages >> $GITHUB_ENV
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CONTINUE_SCAN_FOR_PUSH: ${{ env.GHA_SECURITY_CODE_SCAN_CONTINUE_SCAN_FOR_PUSH }}
 
   semgrep-analysis:
     if: needs.get-repository-languages.outputs.scala_found == 'true'
