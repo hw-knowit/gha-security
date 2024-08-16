@@ -27,12 +27,12 @@ jobs:
         github_ref = os.getenv('GITHUB_REF')
 
         if github_event_name != 'push':
-          with open(env_file), 'a') as f:
+          with open(env_file, 'a') as f:
             f.write('GHA_SECURITY_CODE_SCAN_CONTINUE_SCAN_FOR_PUSH=False\n')
           exit(0)
         
         if github_ref != 'refs/heads/main' and github_ref != 'refs/heads/master':
-          with open(env_file), 'a') as f:
+          with open(env_file, 'a') as f:
             f.write('GHA_SECURITY_CODE_SCAN_CONTINUE_SCAN_FOR_PUSH=False\n')
           exit(0)
         "
