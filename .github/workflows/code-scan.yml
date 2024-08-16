@@ -61,7 +61,7 @@ jobs:
           'Authorization': f'token {github_token}'
         }
             
-        last_five_closed_prs = requests.get(
+        five_recently_updated_closed_prs = requests.get(
           f'https://api.github.com/repos/{github_repository}/pulls',
           headers=headers,
           params={
@@ -72,15 +72,15 @@ jobs:
           }
         )
         
-        if last_five_closed_prs.status_code != 200:
+        if five_recently_updated_closed_prs.status_code != 200:
           print('::error ::Error fetching closed PRs')
           continue_scan = True
           skip_job = True
         else: 
-          last_five_closed_prs = last_five_closed_prs.json()
+          five_recently_updated_closed_prs = five_recently_updated_closed_prs.json()
           match_found = False
           pr_branch = None
-          for closed_pr in last_five_closed_prs:
+          for closed_pr in five_recently_updated_closed_prs:
             merge_commit_sha = closed_pr.get('merge_commit_sha')
             if merge_commit_sha == github_sha:
               match_found = True
@@ -105,15 +105,15 @@ jobs:
               skip_job = True
             else:  
               workflow_run = workflow_run.json()
-              run_id = workflow_run.get('workflow_run')[0].get('id')
+              run_id = workflow_run.get('workflow_runs')[0].get('id')
 
               with open(env_file, 'a') as f:
                 f.write(f'GHA_SECURITY_CODE_SCAN_WORKFLOW_RUN_ID={run_id}\n')
               
           else:
             print('::error ::No matching PR found')
-            print('last_five_closed_prs:')
-            for pr in last_five_closed_prs:
+            print('Five recently updated PRs (closed):')
+            for pr in five_recently_updated_closed_prs:
               print(pr.get('head').get('ref'))
             continue_scan = True
             skip_job = True
