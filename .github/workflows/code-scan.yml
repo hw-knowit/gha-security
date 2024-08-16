@@ -5,18 +5,40 @@ on:
 
 env:
   GITHUB_REPOSITORY: ${{ github.repository }}
-  GHA_SECURITY_CODE_SCAN_CONTINUE_SCAN_FOR_PUSH: 'False'
 
 jobs:
   upload-scan-reports-from-matching-pr:
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     runs-on: ubuntu-latest
+    outputs:
+      continue_scan_for_push: ${{ env.GHA_SECURITY_CODE_SCAN_CONTINUE_SCAN_FOR_PUSH }}
     permissions:
       pull-requests: read
       actions: read
       security-events: write
       contents: read
     steps:
+    - name: "Skip job if not triggered by a push to main/master"
+      run: |
+        python -c "
+        import os
+
+        env_file = os.getenv('GITHUB_ENV')
+        github_event_name = os.getenv('GITHUB_EVENT_NAME')
+        github_ref = os.getenv('GITHUB_REF')
+
+        if github_event_name != 'push':
+          with open(env_file), 'a') as f:
+            f.write('GHA_SECURITY_CODE_SCAN_CONTINUE_SCAN_FOR_PUSH=False\n')
+          exit(0)
+        
+        if github_ref != 'refs/heads/main' and github_ref != 'refs/heads/master':
+          with open(env_file), 'a') as f:
+            f.write('GHA_SECURITY_CODE_SCAN_CONTINUE_SCAN_FOR_PUSH=False\n')
+          exit(0)
+        "
+      env:
+        GITHUB_EVENT_NAME: ${{ github.event_name }}
+        GITHUB_REF: ${{ github.ref }}
     - name: "Get workflow run ID for matching PR"
       run: |
         python -c "
@@ -54,16 +76,13 @@ jobs:
         pr_branch = None
         for closed_pr in last_five_closed_prs:
           merge_commit_sha = closed_pr.get('merge_commit_sha')
-          print(f'merge_commit_sha: {merge_commit_sha}')
           if merge_commit_sha == github_sha:
             match_found = True
             pr_branch = closed_pr.get('head').get('ref')
             break
-        print(f'match_found: {match_found}')
-        print(f'pr_branch: {pr_branch}')
           
         if match_found:
-          workflow_runs = requests.get(
+          workflow_run = requests.get(
             f'https://api.github.com/repos/{github_repository}/actions/runs',
             headers=headers,
             params={
@@ -74,24 +93,33 @@ jobs:
             }
           )
           
-          if workflow_runs.status_code != 200:
-            print('::error ::Error fetching workflow runs')
+          if workflow_run.status_code != 200:
+            print('::error ::Error fetching workflow run')
             with open(env_file, 'a') as f:
               f.write('GHA_SECURITY_CODE_SCAN_CONTINUE_SCAN_FOR_PUSH=True\n')
             exit(0)
           
-          workflow_runs = workflow_runs.json()
-          run_id = workflow_runs.get('workflow_runs')[0].get('id')
-          print(f'run_id: {run_id}')
+          workflow_run = workflow_run.json()
+          run_id = workflow_run.get('workflow_run')[0].get('id')
+          
+          if run_id == '':
+            print('::error ::No workflow runs found')
+            with open(env_file, 'a') as f:
+              f.write('GHA_SECURITY_CODE_SCAN_CONTINUE_SCAN_FOR_PUSH=True\n')
+            exit(0)
 
           with open(env_file, 'a') as f:
             f.write(f'GHA_SECURITY_CODE_SCAN_WORKFLOW_RUN_ID={run_id}\n')
+        
+        else:
+          with open(env_file, 'a') as f:
+            f.write('GHA_SECURITY_CODE_SCAN_CONTINUE_SCAN_FOR_PUSH=True\n')
+          exit(0)
         "
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GITHUB_SHA: ${{ github.sha }}
     - name: "Download artifacts from workflow run ID"
-      if: env.GHA_SECURITY_CODE_SCAN_WORKFLOW_RUN_ID != ''
       uses: actions/download-artifact@v4
       with:
         run-id: ${{ env.GHA_SECURITY_CODE_SCAN_WORKFLOW_RUN_ID }}
@@ -104,8 +132,9 @@ jobs:
         category: 'scan-results'
 
   get-repository-languages:
-      if: github.event_name == 'pull_request'
+      if: github.event_name == 'pull_request' || (github.event_name == 'push' && needs.upload-scan-reports-from-matching-pr.outputs.continue_scan_for_push == 'True')
       runs-on: ubuntu-latest
+      needs: upload-scan-reports-from-matching-pr
       outputs: 
           repository_languages: ${{ env.GHA_SECURITY_CODE_SCAN_REPOSITORY_LANGUAGES }}
           scala_found: ${{ env.GHA_SECURITY_CODE_SCAN_SCALA_FOUND }} 
