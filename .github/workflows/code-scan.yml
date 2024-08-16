@@ -108,7 +108,9 @@ jobs:
               
           else:
             print('::error ::No matching PR found')
-            print('last_five_closed_prs:', last_five_closed_prs.json())
+            print('last_five_closed_prs:')
+            for pr in last_five_closed_prs:
+              print(pr.get('head').get('ref'))
             continue_scan = True
 
         with open(env_file, 'a') as f:
