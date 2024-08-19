@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/entur/gha-security/compare/v1.0.2...v1.1.0) (2024-08-19)
+
+
+### Features
+
+* skip code scan on push ([d998c44](https://github.com/entur/gha-security/commit/d998c4436cff893a6040e98b770e9610ecf60fc5))
+
 ## [1.0.2](https://github.com/entur/gha-security/compare/v1.0.1...v1.0.2) (2024-07-10)
 
 
