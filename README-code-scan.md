@@ -38,7 +38,7 @@ on:
             - main
             - master
     schedule:
-        - cron: "0 3 * * 1-5"
+        - cron: "0 3 * * MON"
   
 jobs:
     code-scan:
