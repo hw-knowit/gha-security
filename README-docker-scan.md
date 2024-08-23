@@ -16,7 +16,6 @@ jobs:
 or add the Entur Shared Workflow _Docker Build and Push_. This will build, push and scan the Docker image.
 Go to the _Actions_ tab in your repository, click on _New workflow_ and select the button _Configure_ on the _Docker Build and Push_ workflow.
 
-```yml
 
 ## Inputs
 

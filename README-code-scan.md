@@ -13,7 +13,6 @@ jobs:
 ```
 or add the Entur Shared Workflow _CodeQL Scan_. Go to the _Actions_ tab in your repository, click on _New workflow_ and select the button _Configure_ on the _CodeQL Scan_ workflow.
 
- 
 
 ## Inputs
 
