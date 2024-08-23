@@ -76,7 +76,7 @@ jobs:
     uses: entur/gha-security/.github/workflows/docker-scan.yml@v1
     with:
       image_artifact: ${{ needs.docker-build.outputs.image_artifact }}
-
+      
 ```
 
 
