@@ -13,6 +13,10 @@ jobs:
         image_artifact: # The name of the image artifact to scan
     
 ```
+or add the Entur Shared Workflow _Docker Build and Push_. This will build, push and scan the Docker image.
+Go to the _Actions_ tab in your repository, click on _New workflow_ and select the button _Configure_ on the _Docker Build and Push_ workflow.
+
+```yml
 
 ## Inputs
 
@@ -30,7 +34,7 @@ jobs:
 
 ### Example
 
-Let's look at an example, assume our repo is called `amazing-app`:
+Let's look at an example, assume our repository is called `amazing-app`:
 
 ```sh
 λ amazing-app ❯ tree
@@ -39,32 +43,41 @@ Let's look at an example, assume our repo is called `amazing-app`:
 ├── Dockerfile
 └── .github
     └── workflows
-        └── ci.yml
+        └── docker-build-push.yml
 ```
 
 ```yaml
-# ci.yml
-name: CI
+# docker-build-push.yml
+name: Docker Build and Push
 
 on:
   pull_request:
+    branches:
+      - "main"
 
 jobs:
   docker-lint:
+    name: Docker Lint
     uses: entur/gha-docker/.github/workflows/lint.yml@v1
-
+    with:
+      dockerfile: Dockerfile
   docker-build:
+    name: Build Docker Image
+    needs: docker-lint
     uses: entur/gha-docker/.github/workflows/build.yml@v1
-
+    with:
+      dockerfile: Dockerfile
+  docker-push:
+    name: Push Docker Image
+    needs: docker-build
+    uses: entur/gha-docker/.github/workflows/push.yml@v1
   docker-scan:
+    name: Scan Docker Image
     needs: docker-build
     uses: entur/gha-security/.github/workflows/docker-scan.yml@v1
     with:
-        image_artifact: ${{ needs.docker-build.outputs.image_artifact }}
+      image_artifact: ${{ needs.docker-build.outputs.image_artifact }}
 
-  docker-push:
-    uses: entur/gha-docker/.github/workflows/push.yml@v1
-    secrets: inherit
 ```
 
 
@@ -92,7 +105,7 @@ jobs:
         external_repository_token: ${{ secrets.EXTERNAL_REPOSITORY_TOKEN }}
 ```
 
-### Schema for whitelist file
+### Schema for allowlist file
 ```yaml
 apiVersion: entur.io/v1alpha1
 kind: DockerScanConfig
@@ -100,7 +113,7 @@ metadata:
   name: {project-name-config}
 spec:
   inherit: {repository where the external allowlist file is placed}
-  whitelist:
+  allowlist:
   - cve: {cve-id}
     comment: {comment explaining why the vulnerability is dismissed}
     reason: {reason for dismissing the vulnerability}
@@ -115,7 +128,7 @@ kind: DockerScanConfig
 metadata:
   name: my-project-config
 spec:
-  whitelist:
+  allowlist:
   - cve: "CVE-2021-1234-abc"
     comment: "This alert is a false positive"
     reason: "false_positive"
