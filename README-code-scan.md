@@ -11,6 +11,8 @@ jobs:
     uses: entur/gha-security/.github/workflows/code-scan.yml@v1
     secrets: inherit
 ```
+or add the Entur Shared Workflow _CodeQL Scan_. Go to the _Actions_ tab in your repository, click on _New workflow_ and select the button _Configure_ on the _CodeQL Scan_ workflow.
+
 
 ## Inputs
 
@@ -32,11 +34,9 @@ on:
     pull_request:
         branches:
             - main
-            - master
     push:
         branches:
             - main
-            - master
     schedule:
         - cron: "0 3 * * MON"
   
