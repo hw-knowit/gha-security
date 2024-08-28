@@ -266,6 +266,7 @@ jobs:
           overwrite: true
 
   allowlist-code-scan-alerts:
+      if: ${{ always() }}
       needs: [codeql-analysis, semgrep-analysis]
       runs-on: ubuntu-latest
       permissions:
