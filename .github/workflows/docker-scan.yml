@@ -7,6 +7,10 @@ on:
                 description: 'Image artifact to scan'
                 type: string
                 required: true
+            image_name:
+                description: 'Name of image to scan, defaults to `${image_artifact}.tar`'
+                type: string
+                required: false
         secrets:
             external_repository_token:
                 description: 'Token to access the external repository mentioned in the docker_scan_config.yml file. Must have read access to the repository.'
@@ -14,6 +18,7 @@ on:
 
 env:
   GHA_SECURITY_DOCKER_SCAN_IMAGE_ARTIFACT: ${{ inputs.image_artifact }}
+  GHA_SECURITY_DOCKER_SCAN_IMAGE_NAME: ${{ inputs.image_name || inputs.image_artifact + '.tar' }}
   GITHUB_REPOSITORY: ${{ github.repository }}
 
 jobs:
@@ -214,7 +219,7 @@ jobs:
           id: anchore-scan
           uses: anchore/scan-action@3343887d815d7b07465f6fdcd395bd66508d486a
           with: 
-            image: ${{ inputs.image_artifact }}.tar
+            image: ${{ env.GHA_SECURITY_DOCKER_SCAN_IMAGE_NAME }}
             by-cve: true
             fail-build: false
             severity-cutoff: critical
